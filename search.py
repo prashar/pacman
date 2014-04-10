@@ -70,20 +70,7 @@ def tinyMazeSearch(problem):
   return  [s, s, w, s, w, w, s, w]
 
 def depthFirstSearch(problem):
-  """
-  Search the deepest nodes in the search tree first [p 85].
 
-  Your search algorithm needs to return a list of actions that reaches
-  the goal.  Make sure to implement a graph search algorithm [Fig. 3.7].
-
-  To get started, you might want to try some of these simple commands to
-  understand the search problem that is being passed in:
-
-  print "Start:", problem.getStartState()
-  print "Is the start a goal?", problem.isGoalState(problem.getStartState())
-  print "Start's successors:", problem.getSuccessors(problem.getStartState())
-  """
-  "*** YOUR CODE HERE ***"
   print "Start:", problem.getStartState()
   print "Is the start a goal?", problem.isGoalState(problem.getStartState())
   print "Start's successors:", problem.getSuccessors((5, 4))
@@ -105,24 +92,30 @@ def depthFirstSearch(problem):
       print "Invalid Start State - no nodes to explore"
       return
   ExploredSet.add(problem.getStartState())
+
+  # Add the list of states to the fringe with priority 0
   for state in init_successors:
-    Fringe.push([state], 0)
+    Fringe.push(([state], 0),0)
 
     while(not Fringe.isEmpty()):
-      priority,StatesExploredThusFar = Fringe.pop() ;
-      state, direction, cost = StatesExploredThusFar[-1]
+      StatesExploredThusFar = Fringe.pop()
+      (state, direction, cost) = (StatesExploredThusFar[0])[-1]
+      priority = StatesExploredThusFar[1]
       if(problem.isGoalState(state)):
-        print StatesExploredThusFar
+        #print StatesExploredThusFar
+        finalDirections = list(map(GetDirectionsFromFinalState,StatesExploredThusFar[0]))
         print "We are done .. "
-        return
+        #print finalDirections
+        print len(finalDirections)
+        return finalDirections
       ExploredSet.add(state)
       successorsToState = problem.getSuccessors(state)
       for successor in successorsToState:
         successorState = successor[0]
         if(successorState not in ExploredSet):
-          NewPathsToExplore = copy.deepcopy(StatesExploredThusFar)
+          NewPathsToExplore = copy.deepcopy(StatesExploredThusFar[0])
           NewPathsToExplore.append(successor)
-          Fringe.push(NewPathsToExplore,priority-1)
+          Fringe.push((NewPathsToExplore,priority-1),priority-1)
 
 def breadthFirstSearch(problem):
   "Search the shallowest nodes in the search tree first. [p 81]"
@@ -146,6 +139,11 @@ def aStarSearch(problem, heuristic=nullHeuristic):
   "*** YOUR CODE HERE ***"
   util.raiseNotDefined()
 
+# Utility function to parse out which states to go to
+def GetDirectionsFromFinalState(sourceToDestinationPath):
+  from game import Directions
+  directionDictionary = {'South':Directions.SOUTH,'North':Directions.NORTH,'East':Directions.EAST,'West':Directions.WEST}
+  return directionDictionary[sourceToDestinationPath[1]]     
 
 # Abbreviations
 bfs = breadthFirstSearch
