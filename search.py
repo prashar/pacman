@@ -13,6 +13,7 @@ by Pacman agents (in searchAgents.py).
 
 import util
 from sets import Set
+import copy
 
 class SearchProblem:
   """
@@ -66,7 +67,7 @@ def tinyMazeSearch(problem):
   from game import Directions
   s = Directions.SOUTH
   w = Directions.WEST
-  return  [s,s,w,s,w,w,s,w]
+  return  [s, s, w, s, w, w, s, w]
 
 def depthFirstSearch(problem):
   """
@@ -85,10 +86,14 @@ def depthFirstSearch(problem):
   "*** YOUR CODE HERE ***"
   print "Start:", problem.getStartState()
   print "Is the start a goal?", problem.isGoalState(problem.getStartState())
-  print "Start's successors:", problem.getSuccessors((5,4))
+  print "Start's successors:", problem.getSuccessors((5, 4))
   print "Len of Children:", len(problem.getSuccessors(problem.getStartState()))
-
-  util.raiseNotDefined()
+  print dir(problem)
+  print problem.goal
+  print problem.getStartState()
+  print problem.walls
+  print problem.costFn
+  #util.raiseNotDefined()
 
   # Initialize both the fringe & ExploredSet
   Fringe = util.PriorityQueue()
@@ -101,19 +106,23 @@ def depthFirstSearch(problem):
       return
   ExploredSet.add(problem.getStartState())
   for state in init_successors:
-      Fringe.push([state], 0)
+    Fringe.push([state], 0)
 
-  while(not Fringe.isEmpty()):
-      print True
-
-
-
-  print dir(problem)
-  print problem.goal
-  print problem.getStartState()
-  print problem.walls
-  print problem.costFn
-  util.raiseNotDefined()
+    while(not Fringe.isEmpty()):
+      priority,StatesExploredThusFar = Fringe.pop() ;
+      state, direction, cost = StatesExploredThusFar[-1]
+      if(problem.isGoalState(state)):
+        print StatesExploredThusFar
+        print "We are done .. "
+        return
+      ExploredSet.add(state)
+      successorsToState = problem.getSuccessors(state)
+      for successor in successorsToState:
+        successorState = successor[0]
+        if(successorState not in ExploredSet):
+          NewPathsToExplore = copy.deepcopy(StatesExploredThusFar)
+          NewPathsToExplore.append(successor)
+          Fringe.push(NewPathsToExplore,priority-1)
 
 def breadthFirstSearch(problem):
   "Search the shallowest nodes in the search tree first. [p 81]"
