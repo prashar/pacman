@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+        <SchemaVersion>2.0</SchemaVersion>
+        <ProjectGuid>{ae461c3b-bf19-4897-b601-1c75acb3645f}</ProjectGuid>
+        <ProjectHome />
+        <StartupFile />
+        <SearchPath />
+        <WorkingDirectory>.</WorkingDirectory>
+        <OutputPath>.</OutputPath>
+        <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+        <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+    <ItemGroup>
+        <Content Include="commands.txt" />
+        <Content Include="search.html" />
+        <Content Include="projects.css" />
+        <Content Include="maze.png" />
+        <Compile Include="eightpuzzle.py" />
+        <Compile Include="game.py" />
+        <Compile Include="ghostAgents.py" />
+        <Compile Include="graphicsDisplay.py" />
+        <Compile Include="graphicsUtils.py" />
+        <Compile Include="keyboardAgents.py" />
+        <Compile Include="layout.py" />
+        <Compile Include="pacman.py" />
+        <Compile Include="pacmanAgents.py" />
+        <Compile Include="search.py" />
+        <Compile Include="searchAgents.py" />
+        <Compile Include="textDisplay.py" />
+        <Compile Include="util.py" />
+        <Content Include="docs\eightpuzzle.html" />
+        <Content Include="docs\game.html" />
+        <Content Include="docs\ghostAgents.html" />
+        <Content Include="docs\graphicsDisplay.html" />
+        <Content Include="docs\graphicsUtils.html" />
+        <Content Include="docs\keyboardAgents.html" />
+        <Content Include="docs\layout.html" />
+        <Content Include="docs\pacman.html" />
+        <Content Include="docs\pacmanAgents.html" />
+        <Content Include="docs\search.html" />
+        <Content Include="docs\searchAgents.html" />
+        <Content Include="docs\textDisplay.html" />
+        <Content Include="docs\util.html" />
+    </ItemGroup>
+    <ItemGroup>
+        <Folder Include="docs" />
+    </ItemGroup>
+    <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+</Project>
