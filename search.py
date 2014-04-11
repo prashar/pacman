@@ -76,9 +76,7 @@ def breadthFirstSearch(problem):
     return graphSearch(problem,'bfs')
 
 def uniformCostSearch(problem):
-  "Search the node of least total cost first. "
-  "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
+    return graphSearch(problem,'ucs')
 
 def nullHeuristic(state, problem=None):
   """
@@ -88,11 +86,9 @@ def nullHeuristic(state, problem=None):
   return 0
 
 def aStarSearch(problem, heuristic=nullHeuristic):
-  "Search the node that has the lowest combined cost and heuristic first."
-  "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
+    return graphSearch(problem,'astar',heuristic)
 
-def graphSearch(problem, strategy='dfs'):
+def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
     '''
     print "Start:", problem.getStartState()
     print "Is the start a goal?", problem.isGoalState(problem.getStartState())
@@ -110,23 +106,24 @@ def graphSearch(problem, strategy='dfs'):
     # Add the start state to the explored set, and add the successors to the Fringe.
     init_successors = problem.getSuccessors(problem.getStartState())
     if(len(init_successors) == 0):
-      print "Invalid Start State - no nodes to explore"
-      return
+        print "Invalid Start State - no nodes to explore"
+        return
     ExploredSet.add(problem.getStartState())
 
     # Add the successors of the root node to the fringe(as a list) with priority 0
-    # For DFS, priorities would keep decreasing ( as we want ) to execute the lowest 
-    # layer of the tree first. 
+    # For DFS, priorities would keep decreasing ( as we want ) to execute the lowest
+    # layer of the tree first.
     for state in init_successors:
         Fringe.push(([state], 0),0)
-    
+
     while(not Fringe.isEmpty()):
         # Get the highest(in this case lowest) item from PQueue, and view the last state in path
         pathToExplore = Fringe.pop()
+        # -1 gives you the last element in the list, the 0 gives you the first part of the tuple
         (state, direction, cost) = (pathToExplore[0])[-1]
         priority = pathToExplore[1]
 
-        # If we're already in the goal state, we're done. 
+        # If we're already in the goal state, we're done.
         if(problem.isGoalState(state)):
             finalDirections = list(map(GetDirectionsFromFinalState,pathToExplore[0]))
             print "-------------Found a Solution---------------"
@@ -139,7 +136,7 @@ def graphSearch(problem, strategy='dfs'):
 
         # Get the rest of the successors of this node
         # and create paths to explore with those successors
-        # as last node.  
+        # as last node.
         successorsToState = problem.getSuccessors(state)
         for successor in successorsToState:
             successorState = successor[0]
@@ -147,16 +144,27 @@ def graphSearch(problem, strategy='dfs'):
                 NewPathsToExplore = copy.deepcopy(pathToExplore[0])
                 NewPathsToExplore.append(successor)
                 if(strategy == 'dfs'):
-                    Fringe.push((NewPathsToExplore,priority-1),priority-1)
+                    Fringe.push((NewPathsToExplore,priority-cost),priority-cost)
                 elif(strategy == 'bfs'):
-                    Fringe.push((NewPathsToExplore,priority+1),priority+1)
-                
+                    Fringe.push((NewPathsToExplore,priority+cost),priority+cost)
+                elif(strategy == 'ucs'):
+                    Fringe.push((NewPathsToExplore,cost),cost)
+                elif(strategy == 'astar'):
+                    # Total Cost up until now
+                    costTillNow = 0
+                    for node in pathToExplore[0]:
+                        costTillNow += node[2]
+                    # Cost based on heuristic
+                    heuristicCost = heuristic(successorState,problem)
+                    costTillNow += heuristicCost
+                    Fringe.push((NewPathsToExplore,costTillNow),costTillNow)
+
 
 # Utility function to parse out which states to go to
 def GetDirectionsFromFinalState(sourceToDestinationPath):
   from game import Directions
   #directionDictionary = {'South':Directions.SOUTH,'North':Directions.NORTH,'East':Directions.EAST,'West':Directions.WEST}
-  return sourceToDestinationPath[1]     
+  return sourceToDestinationPath[1]
 
 # Abbreviations
 bfs = breadthFirstSearch
