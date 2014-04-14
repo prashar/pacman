@@ -272,23 +272,26 @@ class CornersProblem(search.SearchProblem):
     top, right = self.walls.height-2, self.walls.width-2
     self.corners = ((1,1), (1,top), (right, 1), (right, top))
     for corner in self.corners:
-      if not startingGameState.hasFood(*corner):
-        print 'Warning: no food in corner ' + str(corner)
+        if not startingGameState.hasFood(*corner):
+            print 'Warning: no food in corner ' + str(corner)
     self._expanded = 0 # Number of search nodes expanded
 
     "*** YOUR CODE HERE ***"
 
-    # Maintain a bool array with which corners have been set.
-    self.resultState = dict().fromKeys(self.corners,False)
+    # Maintain a bool array where keys represent the corners
+    # the values are all initially set to false.
+    self.cornerIndices = {(1,1):0, (1,top):1, (right,1):2, (right, top):3}
+    self.resultState = (False,False,False,False)
 
   def getStartState(self):
     "Returns the start state (in your state space, not the full Pacman state space)"
     "*** YOUR CODE HERE ***"
-    return self.startingPosition
+    return (self.startingPosition,self.resultState)
 
   # Reached Goal when all True below
   def isGoalState(self, state):
-      return (False not in self.resultState)
+      resultState = state[1]
+      return (False not in resultState)
 
   def getSuccessors(self, state):
     """
@@ -301,17 +304,28 @@ class CornersProblem(search.SearchProblem):
      required to get there, and 'stepCost' is the incremental
      cost of expanding to that successor
     """
+    # Get the current position and make sure you mark that you've visited
+    # the current state
+    currentPosition = state[0]
+    # Read it in as a tuple, convert to list, and then convert back to tuple
+    dictResultState = state[1]
+    dictResultState = list(dictResultState)
+    if(currentPosition in self.cornerIndices.keys()):
+        print currentPosition
+        dictResultState[self.cornerIndices[currentPosition]] = True
+    dictResultState = tuple(dictResultState)
 
     successors = []
     for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-      # Add a successor state to the successor list if the action is legal
-      # Here's a code snippet for figuring out whether a new position hits a wall:
-      #   x,y = currentPosition
-      #   dx, dy = Actions.directionToVector(action)
-      #   nextx, nexty = int(x + dx), int(y + dy)
-      #   hitsWall = self.walls[nextx][nexty]
-
-      "*** YOUR CODE HERE ***"
+        # Add a successor state to the successor list if the action is legal
+        x,y = currentPosition
+        dx, dy = Actions.directionToVector(action)
+        nextx, nexty = int(x + dx), int(y + dy)
+        hitsWall = self.walls[nextx][nexty]
+        if(not hitsWall):
+            nextState = ((nextx, nexty),dictResultState)
+            cost = 1
+            successors.append( ( nextState, action, cost) )
 
     self._expanded += 1
     return successors

@@ -145,10 +145,8 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
                 NewPathsToExplore.append(successor)
                 if(strategy == 'dfs'):
                     Fringe.push((NewPathsToExplore,priority-cost),priority-cost)
-                elif(strategy == 'bfs'):
+                elif(strategy == 'bfs' or strategy == 'ucs'):
                     Fringe.push((NewPathsToExplore,priority+cost),priority+cost)
-                elif(strategy == 'ucs'):
-                    Fringe.push((NewPathsToExplore,cost),cost)
                 elif(strategy == 'astar'):
                     # Total Cost up until now
                     costTillNow = 0
@@ -158,6 +156,7 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
                     heuristicCost = heuristic(successorState,problem)
                     costTillNow += heuristicCost
                     Fringe.push((NewPathsToExplore,costTillNow),costTillNow)
+    print "Could NOT find a solution !!"
 
 
 # Utility function to parse out which states to go to
