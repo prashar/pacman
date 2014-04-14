@@ -311,7 +311,6 @@ class CornersProblem(search.SearchProblem):
     dictResultState = state[1]
     dictResultState = list(dictResultState)
     if(currentPosition in self.cornerIndices.keys()):
-        print currentPosition
         dictResultState[self.cornerIndices[currentPosition]] = True
     dictResultState = tuple(dictResultState)
 
