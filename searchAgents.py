@@ -246,6 +246,12 @@ def manhattanHeuristic(position, problem, info={}):
   xy2 = problem.goal
   return abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
 
+def manhattanHeuristicPositions(position, destination, info={}):
+  "The Manhattan distance heuristic for a PositionSearchProblem"
+  xy1 = position
+  xy2 = destination
+  return abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
+
 def euclideanHeuristic(position, problem, info={}):
   "The Euclidean distance heuristic for a PositionSearchProblem"
   xy1 = position
@@ -363,8 +369,63 @@ def cornersHeuristic(state, problem):
   walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
   "*** YOUR CODE HERE ***"
-  return 0 # Default to trivial solution
+  position = state[0]
+  listCorners = state[1]
+  lenSolvedCorners = len(filter((lambda x: x == True),listCorners))
 
+  # Account for the length
+  height = problem.corners[1][1]
+  width = problem.corners[2][0]
+
+  # Manhattan distance
+  distToCorner = lambda x: manhattanHeuristicPositions(position,x)
+
+  if(lenSolvedCorners == 0):
+      # Nothing is solved, which means it will traverse at least
+      # two full sides of the square/rectangle AND the minimum of the
+      # both height and width.
+      cost = height + width + min(height,width) - 3
+      if(position[0] <= width/2):
+          if(position[1] <= height/2):
+              cost = distToCorner((1,1))
+          else:
+              cost = distToCorner((1,height))
+      else:
+          if(position[1] <= height/2):
+              cost = distToCorner((width,1))
+          else:
+              cost = distToCorner((width,height))
+  elif(lenSolvedCorners == 1):
+      cost  = width + height -2
+      if(listCorners[0] or listCorners[2]):
+          cost += min(distToCorner((1,height)),distToCorner((width,1)))
+      else:
+          cost += min(distToCorner((1,1)),distToCorner((width,height)))
+  elif(lenSolvedCorners == 2):
+        if(listCorners[0] and listCorners[1]):
+            cost = height + min(distToCorner((width,height)),distToCorner(width,1))
+        elif(listCorners[2] and listCorners[3]):
+            cost = height + min(distToCorner((1,1)),distToCorner((1,height)))
+        elif(listCorners[0] and listCorners[2]):
+            cost = width + min(distToCorner((1,height)),distToCorner((width,height)))
+        elif(listCorners[1] and listCorners[3]):
+            cost = width + min(distToCorner((1,1)),distToCorner((width,1)))
+        elif(listCorners[0] and listCorners[3]):
+            cost = width + height + min(distToCorner((1,height)),distToCorner((width,1)))
+        elif(listCorners[1] and listCorners[2]):
+            cost = width + height + min(distToCorner((1,1)),distToCorner((width,height)))
+  elif(lenSolvedCorners == 3):
+      if(not listCorners[0]):
+          cost = distToCorner((1,1))
+      elif(not listCorners[1]):
+          cost = distToCorner((1,height))
+      elif(not listCorners[2]):
+          cost = distToCorner((width,1))
+      else:
+          cost = distToCorner((width,height))
+  else:
+      return 0
+  return cost
 #------------------
 
 class CornersProblem2(search.SearchProblem):
@@ -549,8 +610,35 @@ def foodHeuristic(state, problem):
   Subsequent calls to this heuristic can access problem.heuristicInfo['wallCount']
   """
   position, foodGrid = state
-  "*** YOUR CODE HERE ***"
+
+  # I know my current position
+  # I want to know how far I am in terms of BFS search(the solution length) for each food pellet node.
+  # I find the max solution length from all the distances given to me by BFS, and return that as heurestic
+  # This is definitely both admissible and consistent, since the cost returned from two neighbouring nodes(n+p)
+  # that are one after another will follow the consistency property that h(n) <= c(n,p)+ h(p)
+
+  # I'll need to create a different type of search problem - i.e. position search.
+  try:
+     #mDistance = util.manhattanDistance
+     #return max(tuple(map(lambda x: mDistance(position, x), foodGrid.asList())))
+
+    return max(tuple(map(lambda x: mazeDistance(position, x, problem.startingGameState), foodGrid.asList())))
+
+    #return max(tuple(map(memoHeuristic, foodGrid.asList())))
+  except Exception as e:
+    return 0
   return 0
+  '''
+  gamestate = problem.startingGameState
+  distLamFunction = lambda x: mazeDistance(x,position,gamestate)
+  bfsLengthListToPellets = map(distLamFunction,foodGrid.asList())
+  maxLength = max(bfsLengthListToPellets)
+  return maxLength
+  '''
+# This is the key function I'm using to calculate the distance to each food pellet.
+# I will use this in a lambda to make my code run faster.
+# If I don't do this, it takes two minutes.
+
 
 class ClosestDotSearchAgent(SearchAgent):
   "Search for all food using a sequence of searches"
@@ -578,6 +666,9 @@ class ClosestDotSearchAgent(SearchAgent):
     problem = AnyFoodSearchProblem(gameState)
 
     "*** YOUR CODE HERE ***"
+    solution = search.breadthFirstSearch(problem)
+    return solution
+
     util.raiseNotDefined()
 
 class AnyFoodSearchProblem(PositionSearchProblem):
@@ -611,10 +702,8 @@ class AnyFoodSearchProblem(PositionSearchProblem):
     The state is Pacman's position. Fill this in with a goal test
     that will complete the problem definition.
     """
-    x,y = state
-
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    return (state in self.food.asList())
 
 ##################
 # Mini-contest 1 #

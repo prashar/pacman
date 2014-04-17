@@ -157,7 +157,8 @@ Each Node in the search problem gets represented as a GraphNode.
 
 '''
 class GraphNode:
-    def __init__(self,problem,strategy,state,cost,path):
+    def __init__(self,problem,strategy,state,cost,path,heuresticFn):
+        self.heuristic = heuresticFn
         self.problem = problem
         self.strategy = strategy
         self.pathToNode = path
@@ -169,26 +170,31 @@ class GraphNode:
             Returns a list of GraphNodes that are children
             of this node.
         '''
-        childrenOfThisNode = []
         listOfChildren = self.problem.getSuccessors(self.state)
+        childrenOfThisNode = []
         for child in listOfChildren:
             state,direction,cost = child
             # Since we're using Priority Queue, we must adjust
             # the cost based on the strategy.
-            if(self.strategy == 'bfs'):
+            if(self.strategy == 'bfs' or self.strategy == 'ucs'):
                 cost += self.cost
             elif(self.strategy == 'dfs'):
+                # Priority Queue uses min heap - means I need to add elements
+                # with lower priority.
                 cost = self.cost - cost
+            elif(self.strategy == 'astar'):
+                cost += self.heuristic(state,self.problem)
             # We'll keep a list of directions to get to this child
             # graph node in here.
             directionList = list(self.pathToNode)
             directionList.append(direction)
-            childNode = GraphNode(self.problem,self.strategy,state,cost,directionList)
+            childNode = GraphNode(self.problem,self.strategy,state,cost,directionList,self.heuristic)
             childrenOfThisNode.append(childNode)
         return childrenOfThisNode
 
 
-
+# Common routine which adjusts the general strategy based on the type of search
+# we are executing ..
 def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
 
     # Algorithm taken from page 77 of the textbook
@@ -199,7 +205,7 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
 
     # Addin the root node, and assigning prio 0 ( base prio )
     startState = problem.getStartState()
-    graphRoot = GraphNode(problem,strategy,startState,0,[])
+    graphRoot = GraphNode(problem,strategy,startState,0,[],heuristic)
     Fringe.push(graphRoot,0)
 
     while(not Fringe.isEmpty()):
@@ -208,9 +214,9 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
         # If we're already in the goal state, we're done.
         if(problem.isGoalState(graphNode.state)):
             finalDirections = graphNode.pathToNode
-            print "-----Found a Solution------"
-            print "Solution Length: ", len(finalDirections)
-            print finalDirections
+            #print "-----Found a Solution------"
+            #print "Solution Length: ", len(finalDirections)
+            #print finalDirections
             return finalDirections
 
         # State add to the ExploredSet, so we won't be ever expanding any path with this state in it
@@ -223,12 +229,6 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
             successorsToState = graphNode.GetChildNodes()
             for successor in successorsToState:
                 Fringe.push(successor,successor.cost)
-
-# Utility function to parse out which states to go to
-def GetDirectionsFromFinalState(sourceToDestinationPath):
-  from game import Directions
-  #directionDictionary = {'South':Directions.SOUTH,'North':Directions.NORTH,'East':Directions.EAST,'West':Directions.WEST}
-  return sourceToDestinationPath[1]
 
 # Abbreviations
 bfs = breadthFirstSearch
