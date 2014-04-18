@@ -15,42 +15,6 @@ import util
 from sets import Set
 import copy
 
-class Node():
-    """
-    A container storing the current state of a node, the list
-    of  directions that need to be followed from the start state to
-    get to the current state and the specific problem in which the
-    node will be used.
-    """
-    def __init__(self, state, path, cost=0, heuristic=0, problem=None):
-        self.state = state
-        self.path = path
-        self.cost = cost
-        self.heuristic = heuristic
-        self.problem = problem
-
-    def __str__(self):
-        string = "Current State: "
-        string += __str__(self.state)
-        string += "\n"
-        string == "Path: " + self.path + "\n"
-        return string
-
-    def getSuccessors(self, heuristicFunction=None):
-        children = []
-        for successor in self.problem.getSuccessors(self.state):
-            state = successor[0]
-            path = list(self.path)
-            path.append(successor[1])
-            cost = self.cost + successor[2]
-            if heuristicFunction:
-                heuristic = heuristicFunction(state, self.problem)
-            else:
-                heuristic = 0
-            node = Node(state, path, cost, heuristic, self.problem)
-            children.append(node)
-        return children
-
 
 class SearchProblem:
   """
@@ -95,7 +59,6 @@ class SearchProblem:
      """
      util.raiseNotDefined()
 
-
 def tinyMazeSearch(problem):
   """
   Returns a sequence of moves that solves tinyMaze.  For any other
@@ -109,6 +72,8 @@ def tinyMazeSearch(problem):
 def depthFirstSearch(problem):
     return graphSearch(problem)
 
+def breadthFirstSearch(problem):
+    return graphSearch(problem,'bfs')
 '''
 def breadthFirstSearch(problem):
     """
@@ -122,21 +87,16 @@ def breadthFirstSearch(problem):
     fringe.push(startNode)
 
     while True:
-      if fringe.isEmpty():
-        return False
-      node = fringe.pop()
-      print node.state
-      if problem.isGoalState(node.state):
-        print len(closed)
-        return node.path
-      if node.state not in closed:
-        closed.add(node.state)
-        for childNode in node.getSuccessors():
-            fringe.push(childNode)
+        if fringe.isEmpty():
+            return False
+        node = fringe.pop()
+        if problem.isGoalState(node.state):
+            return node.path
+        if node.state not in closed:
+            closed.add(node.state)
+            for childNode in node.getSuccessors():
+                fringe.push(childNode)
 '''
-
-def breadthFirstSearch(problem):
-    return graphSearch(problem,'bfs')
 
 def uniformCostSearch(problem):
     return graphSearch(problem,'ucs')
@@ -150,20 +110,43 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     return graphSearch(problem,'astar',heuristic)
+'''
+
+def aStarSearch(problem, heuristic=nullHeuristic):
+    "Search the node that has the lowest combined cost and heuristic first."
+
+    closed = set()
+    fringe = util.PriorityQueue()
+
+    startNode = Node(problem.getStartState(), [], 0, 0, problem)
+    fringe.push(startNode, startNode.cost + startNode.heuristic)
+
+    while True:
+        if fringe.isEmpty():
+            return False
+        node = fringe.pop()
+        if problem.isGoalState(node.state):
+            return node.path
+        if node.state not in closed:
+            closed.add(node.state)
+            for childNode in node.getSuccessors(heuristic):
+                fringe.push(childNode, childNode.cost + childNode.heuristic)
 
 '''
 
+'''
 Each Node in the search problem gets represented as a GraphNode.
-
+which maintains everything I need about the node.
 '''
 class GraphNode:
-    def __init__(self,problem,strategy,state,cost,path,heuresticFn):
+    def __init__(self,problem,strategy,state,cost,path,heuresticFn,hrValue):
         self.heuristic = heuresticFn
         self.problem = problem
         self.strategy = strategy
         self.pathToNode = path
         self.state = state
         self.cost = cost
+        self.hrValue = hrValue
 
     def GetChildNodes(self):
         '''
@@ -176,6 +159,7 @@ class GraphNode:
             state,direction,cost = child
             # Since we're using Priority Queue, we must adjust
             # the cost based on the strategy.
+            hrValue = 0
             if(self.strategy == 'bfs' or self.strategy == 'ucs'):
                 cost += self.cost
             elif(self.strategy == 'dfs'):
@@ -183,12 +167,13 @@ class GraphNode:
                 # with lower priority.
                 cost = self.cost - cost
             elif(self.strategy == 'astar'):
-                cost += self.heuristic(state,self.problem)
+                cost += self.cost
+                hrValue = self.heuristic(state,self.problem)
             # We'll keep a list of directions to get to this child
             # graph node in here.
             directionList = list(self.pathToNode)
             directionList.append(direction)
-            childNode = GraphNode(self.problem,self.strategy,state,cost,directionList,self.heuristic)
+            childNode = GraphNode(self.problem,self.strategy,state,cost,directionList,self.heuristic,hrValue)
             childrenOfThisNode.append(childNode)
         return childrenOfThisNode
 
@@ -205,8 +190,11 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
 
     # Addin the root node, and assigning prio 0 ( base prio )
     startState = problem.getStartState()
-    graphRoot = GraphNode(problem,strategy,startState,0,[],heuristic)
-    Fringe.push(graphRoot,0)
+    graphRoot = GraphNode(problem,strategy,startState,0,[],heuristic,0)
+    if(strategy == 'astar'):
+        Fringe.push(graphRoot,graphRoot.cost+graphRoot.hrValue)
+    else:
+        Fringe.push(graphRoot,graphRoot.cost)
 
     while(not Fringe.isEmpty()):
         # Get the highest(in this case lowest) item from PQueue, and view the last state in path
@@ -228,7 +216,45 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
             # as last node.
             successorsToState = graphNode.GetChildNodes()
             for successor in successorsToState:
-                Fringe.push(successor,successor.cost)
+                Fringe.push(successor,successor.cost+successor.hrValue)
+
+
+
+class Node():
+    """
+    A container storing the current state of a node, the list
+    of  directions that need to be followed from the start state to
+    get to the current state and the specific problem in which the
+    node will be used.
+    """
+    def __init__(self, state, path, cost=0, heuristic=0, problem=None):
+        self.state = state
+        self.path = path
+        self.cost = cost
+        self.heuristic = heuristic
+        self.problem = problem
+
+    def __str__(self):
+        string = "Current State: "
+        string += __str__(self.state)
+        string += "\n"
+        string == "Path: " + self.path + "\n"
+        return string
+
+    def getSuccessors(self, heuristicFunction=None):
+        children = []
+        for successor in self.problem.getSuccessors(self.state):
+            state = successor[0]
+            path = list(self.path)
+            path.append(successor[1])
+            cost = self.cost + successor[2]
+            if heuristicFunction:
+                heuristic = heuristicFunction(state, self.problem)
+            else:
+                heuristic = 0
+            node = Node(state, path, cost, heuristic, self.problem)
+            children.append(node)
+        return children
 
 # Abbreviations
 bfs = breadthFirstSearch
