@@ -74,29 +74,6 @@ def depthFirstSearch(problem):
 
 def breadthFirstSearch(problem):
     return graphSearch(problem,'bfs')
-'''
-def breadthFirstSearch(problem):
-    """
-    Search the shallowest nodes in the search tree first.
-    """
-
-    closed = set()
-    fringe = util.Queue()
-
-    startNode = Node(problem.getStartState(), [], 0, 0, problem)
-    fringe.push(startNode)
-
-    while True:
-        if fringe.isEmpty():
-            return False
-        node = fringe.pop()
-        if problem.isGoalState(node.state):
-            return node.path
-        if node.state not in closed:
-            closed.add(node.state)
-            for childNode in node.getSuccessors():
-                fringe.push(childNode)
-'''
 
 def uniformCostSearch(problem):
     return graphSearch(problem,'ucs')
@@ -110,29 +87,6 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     return graphSearch(problem,'astar',heuristic)
-'''
-
-def aStarSearch(problem, heuristic=nullHeuristic):
-    "Search the node that has the lowest combined cost and heuristic first."
-
-    closed = set()
-    fringe = util.PriorityQueue()
-
-    startNode = Node(problem.getStartState(), [], 0, 0, problem)
-    fringe.push(startNode, startNode.cost + startNode.heuristic)
-
-    while True:
-        if fringe.isEmpty():
-            return False
-        node = fringe.pop()
-        if problem.isGoalState(node.state):
-            return node.path
-        if node.state not in closed:
-            closed.add(node.state)
-            for childNode in node.getSuccessors(heuristic):
-                fringe.push(childNode, childNode.cost + childNode.heuristic)
-
-'''
 
 '''
 Each Node in the search problem gets represented as a GraphNode.
@@ -202,9 +156,9 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
         # If we're already in the goal state, we're done.
         if(problem.isGoalState(graphNode.state)):
             finalDirections = graphNode.pathToNode
-            #print "-----Found a Solution------"
-            #print "Solution Length: ", len(finalDirections)
-            #print finalDirections
+            print "-----Found a Solution------"
+            print "Solution Length: ", len(finalDirections)
+            print finalDirections
             return finalDirections
 
         # State add to the ExploredSet, so we won't be ever expanding any path with this state in it
@@ -217,44 +171,6 @@ def graphSearch(problem, strategy='dfs',heuristic=nullHeuristic):
             successorsToState = graphNode.GetChildNodes()
             for successor in successorsToState:
                 Fringe.push(successor,successor.cost+successor.hrValue)
-
-
-
-class Node():
-    """
-    A container storing the current state of a node, the list
-    of  directions that need to be followed from the start state to
-    get to the current state and the specific problem in which the
-    node will be used.
-    """
-    def __init__(self, state, path, cost=0, heuristic=0, problem=None):
-        self.state = state
-        self.path = path
-        self.cost = cost
-        self.heuristic = heuristic
-        self.problem = problem
-
-    def __str__(self):
-        string = "Current State: "
-        string += __str__(self.state)
-        string += "\n"
-        string == "Path: " + self.path + "\n"
-        return string
-
-    def getSuccessors(self, heuristicFunction=None):
-        children = []
-        for successor in self.problem.getSuccessors(self.state):
-            state = successor[0]
-            path = list(self.path)
-            path.append(successor[1])
-            cost = self.cost + successor[2]
-            if heuristicFunction:
-                heuristic = heuristicFunction(state, self.problem)
-            else:
-                heuristic = 0
-            node = Node(state, path, cost, heuristic, self.problem)
-            children.append(node)
-        return children
 
 # Abbreviations
 bfs = breadthFirstSearch

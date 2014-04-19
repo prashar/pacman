@@ -323,11 +323,8 @@ class CornersProblem(search.SearchProblem):
     currentPosition = state[0]
     # Some Python hacking -
     # Read it in as a tuple, convert to list, and then convert back to tuple
-    visitedCorners = state[1]
-    visitedCorners = list(visitedCorners)
-    if(currentPosition in self.cornerIndices.keys()):
-        visitedCorners[self.cornerIndices[currentPosition]] = True
-    visitedCorners = tuple(visitedCorners)
+    #if(currentPosition in self.cornerIndices.keys()):
+    #    visitedCorners[self.cornerIndices[currentPosition]] = True
 
     successors = []
     for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
@@ -337,7 +334,18 @@ class CornersProblem(search.SearchProblem):
         nextx, nexty = int(x + dx), int(y + dy)
         hitsWall = self.walls[nextx][nexty]
         if(not hitsWall):
-            nextState = ((nextx, nexty),visitedCorners)
+            visitedCorners = state[1]
+            visitedCorners = list(visitedCorners)      
+            next_pos = (nextx,nexty)
+            if(next_pos in self.cornerIndices.keys()):
+                visitedCorners[self.cornerIndices[next_pos]] = True
+            for corner in self.corners:
+                if(visitedCorners[self.cornerIndices[corner]]):
+                    visitedCorners[self.cornerIndices[corner]] = True
+                else:
+                    visitedCorners[self.cornerIndices[corner]] = False
+            visitedCorners = tuple(visitedCorners)      
+            nextState = (next_pos,visitedCorners)
             cost = 1
             successors.append( ( nextState, action, cost) )
 
@@ -376,6 +384,18 @@ def cornersHeuristic(state, problem):
   walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
   "*** YOUR CODE HERE ***"
+
+  # Basically I'm breaking the grid down in to 4 quadrants. 
+  # I check which quadrant the pacman is in, and how many pellets
+  # are left to be eaten. If there are 4 left, my heurestic is to 
+  # return the manhattan to the nearest corner depending on the quadrant. 
+  # If there are 3 left, my heurestic is to to add the height, width of the board, 
+  # as well as the distance to that corner. I subtract two, in case I'm right on that corner
+  # to make sure I'm always admissible. If there are two left, I find which two and add 
+  # the height and width accordignly. If I have one left, I return the manhattan to that left corner. 
+
+  # I get about 725 nodes expanded for a score of 434 with this heurestic ( on astar)
+
   position = state[0]
   listCorners = state[1]
   lenSolvedCorners = len(filter((lambda x: x == True),listCorners))
@@ -403,32 +423,36 @@ def cornersHeuristic(state, problem):
           else:
               cost = distToCorner((width,height))
   elif(lenSolvedCorners == 1):
-      cost  = width + height -2
+      # One corner is solved, so return the sum of the other two sides - a constant
+      # as well as the dist to that corner. 
+      cost  = width + height - 2
       if(listCorners[0] or listCorners[2]):
           cost += min(distToCorner((1,height)),distToCorner((width,1)))
       else:
           cost += min(distToCorner((1,1)),distToCorner((width,height)))
   elif(lenSolvedCorners == 2):
+      # Dind out which corner and then return the width/height + corresponding dist to the corner.  
         if(listCorners[0] and listCorners[1]):
-            cost = height + min(distToCorner((width,height)),distToCorner((width,1)))
+            cost = (height -1) + min(distToCorner((width,height)),distToCorner((width,1)))
         elif(listCorners[2] and listCorners[3]):
-            cost = height + min(distToCorner((1,1)),distToCorner((1,height)))
+            cost = (height -1) + min(distToCorner((1,1)),distToCorner((1,height)))
         elif(listCorners[0] and listCorners[2]):
-            cost = width + min(distToCorner((1,height)),distToCorner((width,height)))
+            cost = (width - 1) + min(distToCorner((1,height)),distToCorner((width,height)))
         elif(listCorners[1] and listCorners[3]):
-            cost = width + min(distToCorner((1,1)),distToCorner((width,1)))
+            cost = (width -1) + min(distToCorner((1,1)),distToCorner((width,1)))
         elif(listCorners[0] and listCorners[3]):
-            cost = width + height + min(distToCorner((1,height)),distToCorner((width,1)))
+            cost = (width + height -2) + min(distToCorner((1,height)),distToCorner((width,1)))
         elif(listCorners[1] and listCorners[2]):
-            cost = width + height + min(distToCorner((1,1)),distToCorner((width,height)))
+            cost = (width + height -2) + min(distToCorner((1,1)),distToCorner((width,height)))
   elif(lenSolvedCorners == 3):
+      # Just returned the distance to that corner.  
       if(not listCorners[0]):
           cost = distToCorner((1,1))
       elif(not listCorners[1]):
           cost = distToCorner((1,height))
       elif(not listCorners[2]):
           cost = distToCorner((width,1))
-      else:
+      elif(not listCorners[3]):
           cost = distToCorner((width,height))
   else:
       return 0
@@ -526,34 +550,78 @@ def foodHeuristic(state, problem):
     Subsequent calls to this heuristic can access problem.heuristicInfo['wallCount']
     """
 
-    # I know my current position
-    # I want to know how far I am in terms of BFS search(the solution length) for each food pellet node.
-    # I find the max solution length from all the distances given to me by BFS, and return that as heurestic
+    # My heurestic is basically calculatting the Minimum Spanning Tree of 
+    # the manhattan distances from each node to each node ( including the pacman position). I then
+    # compute the minimum spanning tree and return the sum of the edges. 
     # This is definitely both admissible and consistent, since the cost returned from two neighbouring nodes(n+p)
     # that are one after another will follow the consistency property that h(n) <= c(n,p)+ h(p)
-    # I'll need to create a different type of search problem - i.e. position search.
+    # since the Minimum spanning tree is supposed to get the smallest distance that touches all nodes, and
+    # that distance will definitely be less than the actual traversal distance(due to walls and everything else). 
+    # I am able to get approximately 7161 nodes expanded(about 7 s). My score is about 570. 
+
     position, foodGrid = state
-    def memoHeuristic(x):
-        if (position, x) not in problem.heuristicInfo:
-            problem.heuristicInfo[(position, x)] = mazeDistance(position, x, problem.startingGameState)
-        return problem.heuristicInfo[(position, x)]
-    try:
-        position, foodGrid = state
-        mDistance = util.manhattanDistance
-        return max(tuple(map(memoHeuristic, foodGrid.asList())))
+    all_node_locations = foodGrid.asList()
+    # Add a terminating condition .. 
+    if(len(all_node_locations) == 0): 
+        return 0.0
+    
+    # Contains the pacman position as well ... 
+    all_node_locations.insert(0,position)
+    heurestic_distance = 0.0
+    
+    # This will contain a list of dictionaries 
+    # that will record a dictionary of distances to all other nodes for each index
+    # where each index will represent a node itself. 
+    dict_all_nodes = []
+    
+    # We'll maintain two lists  - one for storing the shortest distance from the node(idx). 
+    # and other for maintaing the name of the shortest distance node. 
+    shortest_distance_from_node = []
+    shortest_node_from_node = []
 
-        #distancesToPellets = tuple(map(lambda x: euclideanHeuristic(position, x), foodGrid.asList()))
-        #return max(distancesToPellets)
-        return max(tuple(map(lambda x: mazeDistance(position, x, problem.startingGameState), foodGrid.asList())))
-    except Exception as e:
-        return 0
-    return 0
+    # We're trying to build a 2D MAP containing the distance form each node
+    # to each node - and then building a MST from that. 
+    # We are maintaining the manhattan distance from each node to each node. 
+    for location in all_node_locations:
+        dict_per_pellet = dict.fromkeys(all_node_locations)
+        mDist = lambda x: util.manhattanDistance(x,location)
+        distances_from_pellet = map(mDist,all_node_locations)
+        # add the values to the dictionary
+        idx=0
+        for dict_pellet_idx in all_node_locations:
+            dict_per_pellet[dict_pellet_idx] = distances_from_pellet[idx]
+            idx += 1 
+        dict_all_nodes.append(dict_per_pellet)
 
-    food_location  = foodGrid.asList()
-    if(len(food_location) == 0):
-        return 0
-    distancesToPellets = tuple(map(lambda x: util.manhattanDistance(position, x), food_location))
-    return max(distancesToPellets)
+    # Fill up all the distances from the pacman
+    # and initialize the shortest node to be pacman node itself from every node. 
+    for location in all_node_locations:
+      shortest_distance_from_node.append(dict_all_nodes[0][location])
+      shortest_node_from_node.append(position)
+  
+    # Since we can't be counting the pacman node, we need to start measuring from the first node onwards. 
+    for start_index in range(1,len(all_node_locations)):
+        unsorted_distances = shortest_distance_from_node[:]
+        unsorted_distances.sort(cmp=None, key=None, reverse=False)
+        sorted_distances = unsorted_distances[start_index:]
+      
+        # Get the index of the element with cost 
+        shortest_cost_idx = shortest_distance_from_node.index(sorted_distances[0])
+        shortest_distance_from_node[shortest_cost_idx] = 0
+        shortest_dist_node = all_node_locations[shortest_cost_idx]
+      
+        #update the values of lowcost and closest
+        for node in all_node_locations:
+            if dict_all_nodes[shortest_cost_idx][node] < shortest_distance_from_node[all_node_locations.index(node)]:
+                shortest_distance_from_node[all_node_locations.index(node)] = dict_all_nodes[shortest_cost_idx][node]
+                shortest_node_from_node[all_node_locations.index(node)] = shortest_dist_node
+        
+    # It is now time to sum up the MST edges 
+    # and return as heurestic. 
+    for idx in range(0,len(all_node_locations)):
+        heurestic_distance += dict_all_nodes[idx][shortest_node_from_node[idx]]
+
+    return heurestic_distance
 
 
 class ClosestDotSearchAgent(SearchAgent):
