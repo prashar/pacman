@@ -9,6 +9,7 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
+from math import *
 
 from game import Agent
 
@@ -68,7 +69,16 @@ class ReflexAgent(Agent):
     newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
     "*** YOUR CODE HERE ***"
-    return successorGameState.getScore()
+    # 1/Dist to the nearest pellet + dist to ghost.
+    distToNearestPellet = [util.manhattanDistance(newPos, item) for item in oldFood.asList()]
+    smallestDist = min(distToNearestPellet)
+    distToGhost = util.manhattanDistance(newPos, newGhostStates[0].configuration.pos)
+    numPelletsRem = successorGameState.getFood().asList()
+    #print len(numPelletsRem)
+    if(distToGhost < 2):
+        return -100000000000
+    metric = (1./(smallestDist+1)**2) - (1./((distToGhost+1)**2)) + (successorGameState.getScore()**2)
+    return metric
 
 def scoreEvaluationFunction(currentGameState):
   """
@@ -101,32 +111,65 @@ class MultiAgentSearchAgent(Agent):
     self.depth = int(depth)
 
 class MinimaxAgent(MultiAgentSearchAgent):
-  """
+    """
     Your minimax agent (question 2)
-  """
-
-  def getAction(self, gameState):
     """
-      Returns the minimax action from the current gameState using self.depth
-      and self.evaluationFunction.
 
-      Here are some method calls that might be useful when implementing minimax.
+    def getAction(self, gameState):
+        """
+          Returns the minimax action from the current gameState using self.depth
+          and self.evaluationFunction.
 
-      gameState.getLegalActions(agentIndex):
-        Returns a list of legal actions for an agent
-        agentIndex=0 means Pacman, ghosts are >= 1
+          Here are some method calls that might be useful when implementing minimax.
 
-      Directions.STOP:
-        The stop direction, which is always legal
+          gameState.getLegalActions(agentIndex):
+            Returns a list of legal actions for an agent
+            agentIndex=0 means Pacman, ghosts are >= 1
 
-      gameState.generateSuccessor(agentIndex, action):
-        Returns the successor game state after an agent takes an action
+          Directions.STOP:
+            The stop direction, which is always legal
 
-      gameState.getNumAgents():
-        Returns the total number of agents in the game
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+          gameState.generateSuccessor(agentIndex, action):
+            Returns the successor game state after an agent takes an action
+
+          gameState.getNumAgents():
+            Returns the total number of agents in the game
+        """
+        # Objective is to return the the best possible action to pacman
+        # considering the depth of our minmax tree. A single ply is one
+        # move for pacman, and one for each ghost.
+        def minValue(gameState,depth):
+
+        def maxValue(gameState,depth):
+
+        def SolveMinimax(gameState,depth):
+            if(gameState.isWin() or gameState.isLose()):
+                return self.evaluationFunction(gameState)
+            if(depth == singlePly):
+                return self.evaluationFunction(gameState)
+            if(depth % numAgents == 0):
+                return maxValue(gameState,depth+1)
+            else:
+                return minValue(gameState,depth+1)
+        # We'll start with depth=1, so pacman always moves first.
+        numAgents = gameState.getNumAgents()
+        StopDepth = self.depth
+        singlePly = numAgents * StopDepth
+
+        # Check for each action
+        v = -float('inf')
+        todo = None
+        for action in gameState.getLegalActions():
+            result = SolveMinimax(gameState.generateSuccessor(0,action),1)
+            if(result > v):
+                v = result
+                todo = action
+        return todo
+
+
+
+
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
   """
