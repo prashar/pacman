@@ -10,6 +10,7 @@ from util import manhattanDistance
 from game import Directions
 import random, util
 from math import *
+from copy import * 
 
 from game import Agent
 
@@ -137,27 +138,46 @@ class MinimaxAgent(MultiAgentSearchAgent):
         """
         # Objective is to return the the best possible action to pacman
         # considering the depth of our minmax tree. A single ply is one
-        # move for pacman, and one for each ghost.
-        def minValue(gameState,depth):
+        # move for pacman, and one for each ghost, so we have to multiply
+        # both to get the total. 
+        def minimizer(gameState,depth,agentID):
+            v = float('inf')
+            for action in gameState.getLegalActions(agentID):
+                successorState = gameState.generateSuccessor(agentID,action)
+                v = min(v,SolveMinimax(successorState,depth+1))
+            return v
 
-        def maxValue(gameState,depth):
+        def maximizer(gameState,depth,agentID):
+            v = -float('inf')
+            for action in gameState.getLegalActions(agentID):
+                successorState = gameState.generateSuccessor(agentID,action)
+                v = max(v,SolveMinimax(successorState,depth+1))
+            return v
 
         def SolveMinimax(gameState,depth):
+            pacmanOrGhost = (depth % numAgents)
             if(gameState.isWin() or gameState.isLose()):
                 return self.evaluationFunction(gameState)
             if(depth == singlePly):
                 return self.evaluationFunction(gameState)
-            if(depth % numAgents == 0):
-                return maxValue(gameState,depth+1)
+            if(pacmanOrGhost == 0):
+                # PACMAN
+                return maximizer(gameState,depth,pacmanOrGhost)
             else:
-                return minValue(gameState,depth+1)
+                # GHOST
+                return minimizer(gameState,depth,pacmanOrGhost)
+        
         # We'll start with depth=1, so pacman always moves first.
         numAgents = gameState.getNumAgents()
         StopDepth = self.depth
         singlePly = numAgents * StopDepth
 
-        # Check for each action
+        # Return the max for each action
         v = -float('inf')
+        # No point evaluating further - just return utility. 
+        if gameState.isWin() or gameState.isLose():
+          return self.evaluationFunction(gameState)
+        # Solve minimax for each action
         todo = None
         for action in gameState.getLegalActions():
             result = SolveMinimax(gameState.generateSuccessor(0,action),1)
@@ -166,22 +186,79 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 todo = action
         return todo
 
-
-
-
-
-
 class AlphaBetaAgent(MultiAgentSearchAgent):
   """
     Your minimax agent with alpha-beta pruning (question 3)
   """
 
   def getAction(self, gameState):
-    """
-      Returns the minimax action using self.depth and self.evaluationFunction
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+        """
+        Returns the minimax action using self.depth and self.evaluationFunction
+        """ 
+        "*** YOUR CODE HERE ***"
+        def minimizer(gameState,depth,agentID,alphaBeta):
+            v = float('inf')
+            local_alphaBeta = copy(alphaBeta)
+            for action in gameState.getLegalActions(agentID):
+                successorState = gameState.generateSuccessor(agentID,action)
+                v = min(v,SolveMinimax(successorState,depth+1,local_alphaBeta))
+                # Alpha already has a higher value available from parent to root. 
+                # return now. 
+                if(v < local_alphaBeta[0]):
+                    return v
+                local_alphaBeta[agentID] = min(local_alphaBeta[agentID],v)
+            return v
+
+        def maximizer(gameState,depth,agentID,alphaBeta):
+            v = -float('inf')
+            local_alphaBeta = copy(alphaBeta)
+            for action in gameState.getLegalActions(agentID):
+                successorState = gameState.generateSuccessor(agentID,action)
+                v = max(v,SolveMinimax(successorState,depth+1,local_alphaBeta))
+                # Largest value available to the maximizer is more than the 
+                # best option to root from minimizer
+                if(v > min(local_alphaBeta[1:])):
+                    return v
+                local_alphaBeta[agentID] = max(local_alphaBeta[agentID],v)
+            return v
+
+        def SolveMinimax(gameState,depth,alphaBeta):
+            pacmanOrGhost = (depth % numAgents)
+            if(gameState.isWin() or gameState.isLose()):
+                return self.evaluationFunction(gameState)
+            if(depth == singlePly):
+                return self.evaluationFunction(gameState)
+            if(pacmanOrGhost == 0):
+                # PACMAN
+                return maximizer(gameState,depth,pacmanOrGhost,alphaBeta)
+            else:
+                # GHOST
+                return minimizer(gameState,depth,pacmanOrGhost,alphaBeta)
+        
+        # We'll start with depth=1, so pacman always moves first.
+        numAgents = gameState.getNumAgents()
+        StopDepth = self.depth
+        singlePly = numAgents * StopDepth
+        # We'll need some sort of a list/array like structure
+        # to maintain both alpha & beta
+        startAlphaBeta = [-float('inf')] + (numAgents-1)*[float('inf')]
+
+        # Check for each action
+        v = -float('inf')
+        # No point evaluating further - just return utility. 
+        if gameState.isWin() or gameState.isLose():
+          return self.evaluationFunction(gameState)
+        # Solve minimax for each action
+        todo = None
+        for action in gameState.getLegalActions():
+            result = SolveMinimax(gameState.generateSuccessor(0,action),1,startAlphaBeta)
+            if(result > v):
+                v = result
+                todo = action
+            # MUST UPDATE THE ROOT NODE. 
+            startAlphaBeta[0] = max(startAlphaBeta[0],v)
+        return todo
+    #util.raiseNotDefined()
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
   """
