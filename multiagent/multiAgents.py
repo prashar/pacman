@@ -261,19 +261,54 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
     #util.raiseNotDefined()
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
-  """
-    Your expectimax agent (question 4)
-  """
 
-  def getAction(self, gameState):
-    """
-      Returns the expectimax action using self.depth and self.evaluationFunction
+    def getAction(self, gameState):
 
-      All ghosts should be modeled as choosing uniformly at random from their
-      legal moves.
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+        def minimizer(gameState,depth,agentID):
+            v = 0.0
+            for action in gameState.getLegalActions(agentID):
+                successorState = gameState.generateSuccessor(agentID,action)
+                v += SolveMinimax(successorState,depth+1)
+            return (v/len(gameState.getLegalActions(agentID)))
+
+        def maximizer(gameState,depth,agentID):
+            v = -float('inf')
+            for action in gameState.getLegalActions(agentID):
+                successorState = gameState.generateSuccessor(agentID,action)
+                v = max(v,SolveMinimax(successorState,depth+1))
+            return v
+
+        def SolveMinimax(gameState,depth):
+            pacmanOrGhost = (depth % numAgents)
+            if(gameState.isWin() or gameState.isLose()):
+                return self.evaluationFunction(gameState)
+            if(depth == singlePly):
+                return self.evaluationFunction(gameState)
+            if(pacmanOrGhost == 0):
+                # PACMAN
+                return maximizer(gameState,depth,pacmanOrGhost)
+            else:
+                # GHOST
+                return minimizer(gameState,depth,pacmanOrGhost)
+        
+        # We'll start with depth=1, so pacman always moves first.
+        numAgents = gameState.getNumAgents()
+        StopDepth = self.depth
+        singlePly = numAgents * StopDepth
+
+        # Return the max for each action
+        v = -float('inf')
+        # No point evaluating further - just return utility. 
+        if gameState.isWin() or gameState.isLose():
+          return self.evaluationFunction(gameState)
+        # Solve minimax for each action
+        todo = None
+        for action in gameState.getLegalActions():
+            result = SolveMinimax(gameState.generateSuccessor(0,action),1)
+            if(result > v):
+                v = result
+                todo = action
+        return todo
 
 def betterEvaluationFunction(currentGameState):
   """
