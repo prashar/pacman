@@ -10,7 +10,9 @@ from util import manhattanDistance
 from game import Directions
 import random, util
 from math import *
-from copy import * 
+from copy import *
+from game import Actions
+from operator import add
 
 from game import Agent
 
@@ -72,13 +74,23 @@ class ReflexAgent(Agent):
     "*** YOUR CODE HERE ***"
     # 1/Dist to the nearest pellet + dist to ghost.
     distToNearestPellet = [util.manhattanDistance(newPos, item) for item in oldFood.asList()]
-    smallestDist = min(distToNearestPellet)
+    smallestDistToPellet = min(distToNearestPellet)
     distToGhost = util.manhattanDistance(newPos, newGhostStates[0].configuration.pos)
     numPelletsRem = successorGameState.getFood().asList()
     #print len(numPelletsRem)
     if(distToGhost < 2):
-        return -100000000000
-    metric = (1./(smallestDist+1)**2) - (1./((distToGhost+1)**2)) + (successorGameState.getScore()**2)
+        return -10000000
+
+    pellet_dist_metric = (1./(smallestDistToPellet+1)**2)
+    ghost_dist_metric = - (1./((distToGhost+1)**2))
+    score_metric = (successorGameState.getScore()**2)
+
+    print "SM, ",score_metric
+    #print "PDM, ",pellet_dist_metric
+    #print "GDM, ",ghost_dist_metric
+    #print "newScaredTimes, ",newScaredTimes
+
+    metric = pellet_dist_metric + ghost_dist_metric + score_metric
     return metric
 
 def scoreEvaluationFunction(currentGameState):
@@ -139,7 +151,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         # Objective is to return the the best possible action to pacman
         # considering the depth of our minmax tree. A single ply is one
         # move for pacman, and one for each ghost, so we have to multiply
-        # both to get the total. 
+        # both to get the total.
         def minimizer(gameState,depth,agentID):
             v = float('inf')
             for action in gameState.getLegalActions(agentID):
@@ -166,7 +178,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
             else:
                 # GHOST
                 return minimizer(gameState,depth,pacmanOrGhost)
-        
+
         # We'll start with depth=1, so pacman always moves first.
         numAgents = gameState.getNumAgents()
         StopDepth = self.depth
@@ -174,7 +186,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
         # Return the max for each action
         v = -float('inf')
-        # No point evaluating further - just return utility. 
+        # No point evaluating further - just return utility.
         if gameState.isWin() or gameState.isLose():
           return self.evaluationFunction(gameState)
         # Solve minimax for each action
@@ -194,7 +206,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
   def getAction(self, gameState):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
-        """ 
+        """
         "*** YOUR CODE HERE ***"
         def minimizer(gameState,depth,agentID,alphaBeta):
             v = float('inf')
@@ -202,8 +214,8 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             for action in gameState.getLegalActions(agentID):
                 successorState = gameState.generateSuccessor(agentID,action)
                 v = min(v,SolveMinimax(successorState,depth+1,local_alphaBeta))
-                # Alpha already has a higher value available from parent to root. 
-                # return now. 
+                # Alpha already has a higher value available from parent to root.
+                # return now.
                 if(v < local_alphaBeta[0]):
                     return v
                 local_alphaBeta[agentID] = min(local_alphaBeta[agentID],v)
@@ -215,7 +227,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             for action in gameState.getLegalActions(agentID):
                 successorState = gameState.generateSuccessor(agentID,action)
                 v = max(v,SolveMinimax(successorState,depth+1,local_alphaBeta))
-                # Largest value available to the maximizer is more than the 
+                # Largest value available to the maximizer is more than the
                 # best option to root from minimizer
                 if(v > min(local_alphaBeta[1:])):
                     return v
@@ -234,7 +246,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             else:
                 # GHOST
                 return minimizer(gameState,depth,pacmanOrGhost,alphaBeta)
-        
+
         # We'll start with depth=1, so pacman always moves first.
         numAgents = gameState.getNumAgents()
         StopDepth = self.depth
@@ -245,7 +257,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
         # Check for each action
         v = -float('inf')
-        # No point evaluating further - just return utility. 
+        # No point evaluating further - just return utility.
         if gameState.isWin() or gameState.isLose():
           return self.evaluationFunction(gameState)
         # Solve minimax for each action
@@ -255,7 +267,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             if(result > v):
                 v = result
                 todo = action
-            # MUST UPDATE THE ROOT NODE. 
+            # MUST UPDATE THE ROOT NODE.
             startAlphaBeta[0] = max(startAlphaBeta[0],v)
         return todo
     #util.raiseNotDefined()
@@ -266,10 +278,11 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
         def minimizer(gameState,depth,agentID):
             v = 0.0
-            for action in gameState.getLegalActions(agentID):
+            all_legal_actions = gameState.getLegalActions(agentID)
+            for action in all_legal_actions:
                 successorState = gameState.generateSuccessor(agentID,action)
                 v += SolveMinimax(successorState,depth+1)
-            return (v/len(gameState.getLegalActions(agentID)))
+            return (v/len(all_legal_actions))
 
         def maximizer(gameState,depth,agentID):
             v = -float('inf')
@@ -290,7 +303,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             else:
                 # GHOST
                 return minimizer(gameState,depth,pacmanOrGhost)
-        
+
         # We'll start with depth=1, so pacman always moves first.
         numAgents = gameState.getNumAgents()
         StopDepth = self.depth
@@ -298,9 +311,9 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
         # Return the max for each action
         v = -float('inf')
-        # No point evaluating further - just return utility. 
+        # No point evaluating further - just return utility.
         if gameState.isWin() or gameState.isLose():
-          return self.evaluationFunction(gameState)
+            return self.evaluationFunction(gameState)
         # Solve minimax for each action
         todo = None
         for action in gameState.getLegalActions():
@@ -311,14 +324,134 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         return todo
 
 def betterEvaluationFunction(currentGameState):
-  """
+    """
+      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
+      evaluation function (question 5).
+
+      DESCRIPTION: linear combination of various factors plus some negative
+          factors which make sure that pacman does not get eaten often."
+    """
+    newPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    newGhostStates = currentGameState.getGhostStates()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    score = currentGameState.getScore()
+    capsules = currentGameState.getCapsules()
+
+    ghostDistance = 0
+    for ghost in newGhostStates:
+      ghostDistance += manhattanDistance(newPos, ghost.getPosition())
+
+    capsuleDistance = 0
+    if len(capsules) > 0 and max(newScaredTimes) > 25:
+      print 'PASS',newScaredTimes
+      if ghostDistance < 2:
+        return -1000000000
+      else:
+        closestCapsule = 10000
+        for capsule in capsules:
+          capsuleDistance += mazeDistance(capsule, newPos, currentGameState)
+          if capsuleDistance < closestCapsule:
+            closestCapsule = capsuleDistance
+    else:
+      capsuleDistance = 10000000000000000
+
+    foodDistance = 0
+    closestFood = (1234, 5678)
+    for x in range(newFood.width):
+      for y in range(newFood.height):
+        if newFood[x][y]:
+          distance = manhattanDistance(newPos, (x, y))
+          foodDistance += distance
+          if distance < manhattanDistance(closestFood, newPos):
+            closestFood = (x, y)
+    if closestFood != (1234, 5678):
+      closestFood = mazeDistance(closestFood, newPos, currentGameState)
+
+    if ghostDistance < 2:
+      return -100000000000
+    elif foodDistance == 0:
+      return 100000000 * score
+    if foodDistance == 2:
+      return 1000000 * score
+    elif foodDistance == 1:
+      return 10000000 * score
+
+    #print (100000000 / (1 + capsuleDistance))
+    #print "MS",max(newScaredTimes)
+    #print newScaredTimes
+    #print closestFood
+    #print ghostDistance
+    #print score**3
+    value = 0
+    value += - foodDistance
+    value += - 10*closestFood**2
+    value += - 10/ghostDistance**2
+    value += score**3
+    #value += 100000000 / (1 + capsuleDistance)
+    return value
+
+
+def betterEvaluationFunction2(currentGameState):
+    """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
+    ['__doc__', '__eq__', '__hash__', '__init__', '__module__', '__str__',
+    'data', 'deepCopy', 'generatePacmanSuccessor', 'generateSuccessor',
+    'getCapsules', 'getFood', 'getGhostPosition', 'getGhostPositions',
+    'getGhostState', 'getGhostStates', 'getLegalActions',
+    'getLegalPacmanActions', 'getNumAgents', 'getNumFood', 'getPacmanPosition',
+    'getPacmanState', 'getScore', 'getWalls', 'hasFood', 'hasWall', 'initialize',
+    'isLose', 'isWin']
+
     DESCRIPTION: <write something here so we know what you did>
-  """
-  "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
+    """
+    "*** YOUR CODE HERE ***"
+    # Useful information you can extract from a GameState (pacman.py)
+    newPos = currentGameState.getPacmanPosition()
+    Food = currentGameState.getFood()
+    newGhostStates = currentGameState.getGhostStates()
+    numGhosts = len(newGhostStates)
+    capsules = currentGameState.getCapsules()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    ghostLocations = [ghostState.configuration.pos for ghostState in newGhostStates]
+
+    "*** YOUR CODE HERE ***"
+    # 1/Dist to the nearest pellet + dist to ghost.
+    distToFood = [util.manhattanDistance(newPos, item) for item in Food.asList()]
+    smallestDistToPellet = min(distToFood)
+    totalDistToAllPellets = sum(distToFood)
+    distToGhosts = map(lambda x: util.manhattanDistance(newPos, x), ghostLocations)
+    numPelletsRem = currentGameState.getFood().asList()
+    ghost_dist_metric=0
+    minCapDist=0
+    #print len(numPelletsRem)
+
+    # DO NOT DIE
+    if(len(filter((lambda x: x <= 2), distToGhosts))):
+        return -10000000
+
+    # How far are the capsules ?
+    if(len(capsules)):
+        capsuleDist = map(lambda x: util.manhattanDistance(newPos, x), capsules)
+        minCapDist = min(capsuleDist)
+
+    # How far is the nearest pellet ?
+    food_dist_metric = (totalDistToAllPellets)
+    pellet_dist_metric = (1./(smallestDistToPellet+1)**2)
+    for dist in distToGhosts:
+        ghost_dist_metric += - (1./((dist+1)**2))
+    score_metric = (currentGameState.getScore()**2)
+    capdist_metric = 100./(minCapDist+1)**2
+
+    #print "SM, ",score_metric
+    #print "PDM, ",pellet_dist_metric
+    #print "GDM, ",ghost_dist_metric
+    #print "newScaredTimes, ",newScaredTimes
+
+    metric = food_dist_metric + pellet_dist_metric + ghost_dist_metric + score_metric + capdist_metric
+    return metric
 
 # Abbreviation
 better = betterEvaluationFunction
@@ -338,4 +471,216 @@ class ContestAgent(MultiAgentSearchAgent):
     """
     "*** YOUR CODE HERE ***"
     util.raiseNotDefined()
+
+class SearchProblem:
+    """
+    This class outlines the structure of a search problem, but doesn't implement
+    any of the methods (in object-oriented terminology: an abstract class).
+
+    You do not need to change anything in this class, ever.
+    """
+
+    def getStartState(self):
+        """
+        Returns the start state for the search problem
+        """
+        util.raiseNotDefined()
+
+    def isGoalState(self, state):
+        """
+          state: Search state
+
+        Returns True if and only if the state is a valid goal state
+        """
+        util.raiseNotDefined()
+
+    def getSuccessors(self, state):
+        """
+          state: Search state
+
+        For a given state, this should return a list of triples,
+        (successor, action, stepCost), where 'successor' is a
+        successor to the current state, 'action' is the action
+        required to get there, and 'stepCost' is the incremental
+        cost of expanding to that successor
+        """
+        util.raiseNotDefined()
+
+    def getCostOfActions(self, actions):
+        """
+         actions: A list of actions to take
+
+        This method returns the total cost of a particular sequence of actions.  The sequence must
+        be composed of legal moves
+        """
+        util.raiseNotDefined()
+
+class PositionSearchProblem(SearchProblem):
+    """
+    A search problem defines the state space, start state, goal test,
+    successor function and cost function.  This search problem can be
+    used to find paths to a particular point on the pacman board.
+
+    The state space consists of (x,y) positions in a pacman game.
+
+    Note: this search problem is fully specified; you should NOT change it.
+    """
+
+    def __init__(self, gameState, costFn = lambda x: 1, goal=(1,1), start=None, warn=True, visualize=True):
+        """
+        Stores the start and goal.
+
+        gameState: A GameState object (pacman.py)
+        costFn: A function from a search state (tuple) to a non-negative number
+        goal: A position in the gameState
+        """
+        self.walls = gameState.getWalls()
+        self.startState = gameState.getPacmanPosition()
+        if start != None: self.startState = start
+        self.goal = goal
+        self.costFn = costFn
+        self.visualize = visualize
+        if warn and (gameState.getNumFood() != 1 or not gameState.hasFood(*goal)):
+            print 'Warning: this does not look like a regular search maze'
+
+        # For display purposes
+        self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
+
+    def getStartState(self):
+        return self.startState
+
+    def isGoalState(self, state):
+        isGoal = state == self.goal
+
+        # For display purposes only
+        if isGoal and self.visualize:
+            self._visitedlist.append(state)
+            import __main__
+            if '_display' in dir(__main__):
+                if 'drawExpandedCells' in dir(__main__._display): #@UndefinedVariable
+                    __main__._display.drawExpandedCells(self._visitedlist) #@UndefinedVariable
+
+        return isGoal
+
+    def getSuccessors(self, state):
+        """
+        Returns successor states, the actions they require, and a cost of 1.
+
+         As noted in search.py:
+             For a given state, this should return a list of triples,
+         (successor, action, stepCost), where 'successor' is a
+         successor to the current state, 'action' is the action
+         required to get there, and 'stepCost' is the incremental
+         cost of expanding to that successor
+        """
+
+        successors = []
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            x,y = state
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if not self.walls[nextx][nexty]:
+                nextState = (nextx, nexty)
+                cost = self.costFn(nextState)
+                successors.append( ( nextState, action, cost) )
+
+        # Bookkeeping for display purposes
+        self._expanded += 1 # DO NOT CHANGE
+        if state not in self._visited:
+            self._visited[state] = True
+            self._visitedlist.append(state)
+
+        return successors
+
+    def getCostOfActions(self, actions):
+        """
+        Returns the cost of a particular sequence of actions.  If those actions
+        include an illegal move, return 999999
+        """
+        if actions == None: return 999999
+        x,y= self.getStartState()
+        cost = 0
+        for action in actions:
+            # Check figure out the next state and see whether its' legal
+            dx, dy = Actions.directionToVector(action)
+            x, y = int(x + dx), int(y + dy)
+            if self.walls[x][y]: return 999999
+            cost += self.costFn((x,y))
+        return cost
+
+class Node():
+  """
+  A container storing the current state of a node, the list
+  of  directions that need to be followed from the start state to
+  get to the current state and the specific problem in which the
+  node will be used.
+  """
+  def __init__(self, state, path, cost=0, heuristic=0, problem=None):
+    self.state = state
+    self.path = path
+    self.cost = cost
+    self.heuristic = heuristic
+    self.problem = problem
+
+  def __str__(self):
+    string = "Current State: "
+    string += __str__(self.state)
+    string += "\n"
+    string == "Path: " + self.path + "\n"
+    return string
+
+  def getSuccessors(self, heuristicFunction=None):
+    children = []
+    for successor in self.problem.getSuccessors(self.state):
+      state = successor[0]
+      path = list(self.path)
+      path.append(successor[1])
+      cost = self.cost + successor[2]
+      if heuristicFunction:
+        heuristic = heuristicFunction(state, self.problem)
+      else:
+        heuristic = 0
+      node = Node(state, path, cost, heuristic, self.problem)
+      children.append(node)
+    return children
+
+def breadthFirstSearch(problem):
+    """
+    Search the shallowest nodes in the search tree first.
+    """
+
+    closed = set()
+    fringe = util.Queue()
+
+    startNode = Node(problem.getStartState(), [], 0, 0, problem)
+    fringe.push(startNode)
+
+    while True:
+      if fringe.isEmpty():
+        return False
+      node = fringe.pop()
+      if problem.isGoalState(node.state):
+        return node.path
+      if node.state not in closed:
+        closed.add(node.state)
+        for childNode in node.getSuccessors():
+          fringe.push(childNode)
+
+def mazeDistance(point1, point2, gameState):
+    """
+    Returns the maze distance between any two points, using the search functions
+    you have already built.  The gameState can be any game state -- Pacman's position
+    in that state is ignored.
+
+    Example usage: mazeDistance( (2,4), (5,6), gameState)
+
+    This might be a useful helper function for your ApproximateSearchAgent.
+    """
+    x1, y1 = point1
+    x2, y2 = point2
+    walls = gameState.getWalls()
+    assert not walls[x1][y1], 'point1 is a wall: ' + point1
+    assert not walls[x2][y2], 'point2 is a wall: ' + str(point2)
+    prob = PositionSearchProblem(gameState, start=point1, goal=point2, warn=False, visualize=False)
+    return len(breadthFirstSearch(prob))
 
