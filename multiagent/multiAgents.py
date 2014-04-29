@@ -13,6 +13,7 @@ from math import *
 from copy import *
 from game import Actions
 from operator import add
+from collections import Counter
 
 from game import Agent
 
@@ -85,7 +86,7 @@ class ReflexAgent(Agent):
     ghost_dist_metric = - (1./((distToGhost+1)**2))
     score_metric = (successorGameState.getScore()**2)
 
-    print "SM, ",score_metric
+    #print "SM, ",score_metric
     #print "PDM, ",pellet_dist_metric
     #print "GDM, ",ghost_dist_metric
     #print "newScaredTimes, ",newScaredTimes
@@ -188,11 +189,12 @@ class MinimaxAgent(MultiAgentSearchAgent):
         v = -float('inf')
         # No point evaluating further - just return utility.
         if gameState.isWin() or gameState.isLose():
-          return self.evaluationFunction(gameState)
+            return self.evaluationFunction(gameState)
         # Solve minimax for each action
         todo = None
         for action in gameState.getLegalActions():
             result = SolveMinimax(gameState.generateSuccessor(0,action),1)
+            # Need this to maintain the action associated with the highest value
             if(result > v):
                 v = result
                 todo = action
@@ -252,7 +254,9 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         StopDepth = self.depth
         singlePly = numAgents * StopDepth
         # We'll need some sort of a list/array like structure
-        # to maintain both alpha & beta
+        # to maintain both alpha & beta. Here creating a list with
+        # it's first value set to -inf, and the remaining values set to +inf
+        # The remaining values are euqal to the number of num of ghosts.
         startAlphaBeta = [-float('inf')] + (numAgents-1)*[float('inf')]
 
         # Check for each action
@@ -276,12 +280,17 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
     def getAction(self, gameState):
 
+        #newGhostStates = gameState.getGhostStates()
+        #newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        #print newScaredTimes
+
         def minimizer(gameState,depth,agentID):
             v = 0.0
             all_legal_actions = gameState.getLegalActions(agentID)
             for action in all_legal_actions:
                 successorState = gameState.generateSuccessor(agentID,action)
                 v += SolveMinimax(successorState,depth+1)
+            # This is expectimax - just add and divide by the # of actions.
             return (v/len(all_legal_actions))
 
         def maximizer(gameState,depth,agentID):
@@ -342,15 +351,19 @@ def betterEvaluationFunction(currentGameState):
     for ghost in newGhostStates:
       ghostDistance += manhattanDistance(newPos, ghost.getPosition())
 
+    #print 'PASS',newScaredTimes
+    #print cnt[closest_food_pellet]
+    #print sum(cnt.itervalues())
+
     capsuleDistance = 0
     if len(capsules) > 0 and max(newScaredTimes) > 25:
-      print 'PASS',newScaredTimes
       if ghostDistance < 2:
         return -1000000000
       else:
         closestCapsule = 10000
         for capsule in capsules:
-          capsuleDistance += mazeDistance(capsule, newPos, currentGameState)
+          #capsuleDistance += mazeDistance(capsule, newPos, currentGameState)
+          capsuleDistance += manhattanDistance(capsule, newPos)
           if capsuleDistance < closestCapsule:
             closestCapsule = capsuleDistance
     else:
@@ -366,7 +379,8 @@ def betterEvaluationFunction(currentGameState):
           if distance < manhattanDistance(closestFood, newPos):
             closestFood = (x, y)
     if closestFood != (1234, 5678):
-      closestFood = mazeDistance(closestFood, newPos, currentGameState)
+      #closestFood = mazeDistance(closestFood, newPos, currentGameState)
+      closestFood = manhattanDistance(closestFood, newPos)
 
     if ghostDistance < 2:
       return -100000000000
@@ -376,6 +390,15 @@ def betterEvaluationFunction(currentGameState):
       return 1000000 * score
     elif foodDistance == 1:
       return 10000000 * score
+
+    cnt = Counter()
+    for location in newFood.asList():
+        cnt[location] = util.manhattanDistance(location, newPos)
+    print len(newFood.asList())
+    closest_food_pellet = min(cnt.iterkeys(),key=lambda key: cnt[key])
+
+    if(closestFood != cnt[closest_food_pellet]):
+        print "SOMETING WENT WRONG"
 
     #print (100000000 / (1 + capsuleDistance))
     #print "MS",max(newScaredTimes)
@@ -388,7 +411,7 @@ def betterEvaluationFunction(currentGameState):
     value += - 10*closestFood**2
     value += - 10/ghostDistance**2
     value += score**3
-    #value += 100000000 / (1 + capsuleDistance)
+    value += 100000000 / (1 + capsuleDistance)
     return value
 
 
@@ -412,49 +435,78 @@ def betterEvaluationFunction2(currentGameState):
     newPos = currentGameState.getPacmanPosition()
     Food = currentGameState.getFood()
     newGhostStates = currentGameState.getGhostStates()
-    numGhosts = len(newGhostStates)
+    #numGhosts = len(newGhostStates)
     capsules = currentGameState.getCapsules()
     newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
     ghostLocations = [ghostState.configuration.pos for ghostState in newGhostStates]
 
     "*** YOUR CODE HERE ***"
-    # 1/Dist to the nearest pellet + dist to ghost.
-    distToFood = [util.manhattanDistance(newPos, item) for item in Food.asList()]
-    smallestDistToPellet = min(distToFood)
-    totalDistToAllPellets = sum(distToFood)
+
+    totalDistToAllPellets = 0
+
+    # Calculate the following:
+    # a ) Distance to each food pellet.
+    # b ) Smallest dist to a pellet.
+    # c )  total dist to all pellets.
+    # d ) BFS Length of Distance to the nearest pellet.
+    if(len(Food.asList())):
+        cnt = Counter()
+        for location in Food.asList():
+            cnt[location] = util.manhattanDistance(location, newPos)
+        closest_food_pellet = min(cnt.iterkeys(),key=lambda key: cnt[key])
+        distToNearestPellet = cnt[closest_food_pellet]
+        totalDistToAllPellets = sum(cnt.itervalues())
+
+    # distance to each ghost - call sum() for total distance.
     distToGhosts = map(lambda x: util.manhattanDistance(newPos, x), ghostLocations)
-    numPelletsRem = currentGameState.getFood().asList()
-    ghost_dist_metric=0
-    minCapDist=0
-    #print len(numPelletsRem)
 
-    # DO NOT DIE
+    # DO NOT DIE - if distance to any ghost is  <=2, don't make the move.
     if(len(filter((lambda x: x <= 2), distToGhosts))):
-        return -10000000
+        return -10e10
 
-    # How far are the capsules ?
+    # Use Manhattan to figure out the closest point ?
     if(len(capsules)):
-        capsuleDist = map(lambda x: util.manhattanDistance(newPos, x), capsules)
+        #capsuleDist = map(lambda x: util.manhattanDistance(newPos, x), capsules)
+        capsuleDist = map(lambda x: mazeDistance(newPos, x,currentGameState), capsules)
         minCapDist = min(capsuleDist)
+    else:
+        minCapDist = 0
 
-    # How far is the nearest pellet ?
-    food_dist_metric = (totalDistToAllPellets)
-    pellet_dist_metric = (1./(smallestDistToPellet+1)**2)
-    for dist in distToGhosts:
-        ghost_dist_metric += - (1./((dist+1)**2))
-    score_metric = (currentGameState.getScore()**2)
-    capdist_metric = 100./(minCapDist+1)**2
+    # Take care of trivial cases like nearby ghosts, no food instances, etc
+    if(totalDistToAllPellets == 0):
+        return 10e8
+    elif(totalDistToAllPellets == 1):
+        return 10e7
+    elif(totalDistToAllPellets == 2):
+        return 10e6
+
+    # Total food distance
+    food_dist_metric = (10e2 * totalDistToAllPellets)
+
+    # Nearest food pellet distance ( Manhattan )
+    pellet_dist_metric = (10.*(distToNearestPellet+1)**2)
+
+    # Total Ghost distance
+    # Penalize for being close to ghosts.
+    ghost_dist_metric = - (10./((sum(distToGhosts)+1)**2))
+
+    # This matters a lot, because we need an avg score of a 1000.
+    score_metric = (currentGameState.getScore()**3)
+
+    capdist_metric = 10e2 * (minCapDist)
 
     #print "SM, ",score_metric
     #print "PDM, ",pellet_dist_metric
     #print "GDM, ",ghost_dist_metric
     #print "newScaredTimes, ",newScaredTimes
 
-    metric = food_dist_metric + pellet_dist_metric + ghost_dist_metric + score_metric + capdist_metric
+    metric = - food_dist_metric - pellet_dist_metric - ghost_dist_metric + score_metric + capdist_metric
     return metric
 
 # Abbreviation
 better = betterEvaluationFunction
+better2 = betterEvaluationFunction2
+
 
 class ContestAgent(MultiAgentSearchAgent):
   """
