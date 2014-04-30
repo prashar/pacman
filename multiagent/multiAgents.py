@@ -284,7 +284,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         #newGhostStates = gameState.getGhostStates()
         #newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
         #print newScaredTimes
-        
+
         #print "---xxxx------"
         #PrintState(gameState)
 
@@ -340,172 +340,6 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
                 todo = action
         return todo
 
-def PrintState(currentGameState):
-    """
-      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-      evaluation function (question 5).
-
-      DESCRIPTION: linear combination of various factors plus some negative
-          factors which make sure that pacman does not get eaten often."
-    """
-    newPos = currentGameState.getPacmanPosition()
-    newFood = currentGameState.getFood()
-    newGhostStates = currentGameState.getGhostStates()
-    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-    score = currentGameState.getScore()
-    capsules = currentGameState.getCapsules()
-
-    ghostDistance = 0
-    for ghost in newGhostStates:
-      ghostDistance += manhattanDistance(newPos, ghost.getPosition())
-
-    #print 'PASS',newScaredTimes
-    #print cnt[closest_food_pellet]
-    #print sum(cnt.itervalues())
-
-    capsuleDistance = 0
-    if len(capsules) > 0 and max(newScaredTimes) > 25:
-      if ghostDistance < 2:
-        return -1000000000
-      else:
-        closestCapsule = 10000
-        for capsule in capsules:
-          capsuleDistance += mazeDistance(capsule, newPos, currentGameState)
-          #capsuleDistance += manhattanDistance(capsule, newPos)
-          if capsuleDistance < closestCapsule:
-            closestCapsule = capsuleDistance
-    else:
-      capsuleDistance = 10000000000000000
-
-    foodDistance = 0
-    closestFood = (1234, 5678)
-    for x in range(newFood.width):
-      for y in range(newFood.height):
-        if newFood[x][y]:
-          distance = manhattanDistance(newPos, (x, y))
-          foodDistance += distance
-          if distance < manhattanDistance(closestFood, newPos):
-            closestFood = (x, y)
-    if closestFood != (1234, 5678):
-      closestFood = mazeDistance(closestFood, newPos, currentGameState)
-      #closestFood = manhattanDistance(closestFood, newPos)
-
-    if ghostDistance < 2:
-      return -100000000000
-    elif foodDistance == 0:
-      return 100000000 * score
-    if foodDistance == 2:
-      return 1000000 * score
-    elif foodDistance == 1:
-      return 10000000 * score
-
-    cnt = Counter()
-    for location in newFood.asList():
-        cnt[location] = util.manhattanDistance(location, newPos)
-    #print len(newFood.asList())
-    closest_food_pellet = min(cnt.iterkeys(),key=lambda key: cnt[key])
-
-    #if(closestFood != cnt[closest_food_pellet]):
-       #print "SOMETING WENT WRONG"
-
-    print "CapDist:",capsuleDistance, (100000000 / (1 + capsuleDistance))
-    print "foodDist:",-foodDistance
-    print "MS",newScaredTimes, max(newScaredTimes)
-    print "Closest Food: ",closestFood, - 10*closestFood**2
-    print "Ghost Dist:", ghostDistance, - 10/ghostDistance**2
-    print "Score:",score,score**3
-    value = 0
-    value += - foodDistance
-    value += - 10*closestFood**2
-    value += - 10/ghostDistance**2
-    value += score**3
-    value += 100000000 / (1 + capsuleDistance)
-    print "Final " , value
-    return value
-
-def betterEvaluationFunction2(currentGameState):
-    """
-      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-      evaluation function (question 5).
-
-      DESCRIPTION: linear combination of various factors plus some negative
-          factors which make sure that pacman does not get eaten often."
-    """
-    newPos = currentGameState.getPacmanPosition()
-    newFood = currentGameState.getFood()
-    newGhostStates = currentGameState.getGhostStates()
-    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-    score = currentGameState.getScore()
-    capsules = currentGameState.getCapsules()
-
-    ghostDistance = 0
-    for ghost in newGhostStates:
-      ghostDistance += manhattanDistance(newPos, ghost.getPosition())
-
-    #print 'PASS',newScaredTimes
-    #print cnt[closest_food_pellet]
-    #print sum(cnt.itervalues())
-
-    capsuleDistance = 0
-    if len(capsules) > 0 and max(newScaredTimes) > 25:
-      if ghostDistance < 2:
-        return -1000000000
-      else:
-        closestCapsule = 10000
-        for capsule in capsules:
-          capsuleDistance += mazeDistance(capsule, newPos, currentGameState)
-          #capsuleDistance += manhattanDistance(capsule, newPos)
-          if capsuleDistance < closestCapsule:
-            closestCapsule = capsuleDistance
-    else:
-      capsuleDistance = 10000000000000000
-
-    foodDistance = 0
-    closestFood = (1234, 5678)
-    for x in range(newFood.width):
-      for y in range(newFood.height):
-        if newFood[x][y]:
-          distance = manhattanDistance(newPos, (x, y))
-          foodDistance += distance
-          if distance < manhattanDistance(closestFood, newPos):
-            closestFood = (x, y)
-    if closestFood != (1234, 5678):
-      closestFood = mazeDistance(closestFood, newPos, currentGameState)
-      #closestFood = manhattanDistance(closestFood, newPos)
-
-    if ghostDistance < 2:
-      return -100000000000
-    elif foodDistance == 0:
-      return 100000000 * score
-    if foodDistance == 2:
-      return 1000000 * score
-    elif foodDistance == 1:
-      return 10000000 * score
-
-    cnt = Counter()
-    for location in newFood.asList():
-        cnt[location] = util.manhattanDistance(location, newPos)
-    #print len(newFood.asList())
-    closest_food_pellet = min(cnt.iterkeys(),key=lambda key: cnt[key])
-
-    #if(closestFood != cnt[closest_food_pellet]):
-       #print "SOMETING WENT WRONG"
-
-    #print (100000000 / (1 + capsuleDistance))
-    #print "MS",max(newScaredTimes)
-    #print newScaredTimes
-    #print closestFood
-    #print ghostDistance
-    #print score**3
-    value = 0
-    value += - foodDistance
-    value += - 10*closestFood**2
-    value += - 10/ghostDistance**2
-    value += score**3
-    value += 100000000 / (1 + capsuleDistance)
-    return value
-
-
 def betterEvaluationFunction(currentGameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
@@ -519,21 +353,49 @@ def betterEvaluationFunction(currentGameState):
     'getPacmanState', 'getScore', 'getWalls', 'hasFood', 'hasWall', 'initialize',
     'isLose', 'isWin']
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION:
+
+    Basically, my evaluation function is a linear combination of
+    the following:
+
+
+    1. Food Total Distance Calculating the total distance to all food pellets.
+    2. Game Score - Cubing the game score, since it's very important we gravitate towards a state
+    which warrants highest score.
+    3. Power Pellets - Get to at least one power pellet ( to increase the score, so avg > 1000 )
+    4. Distance to nearest pellet - find out which pellet is closest to you, and run a
+    breadth first search from project 1 to find out the length of the optimal path to it.
+
+    Exceptions:
+    1. If the total distance to the ghost happens to be less than 2, return a very high
+    negative utility, so you don't pick that state.
+    2. If you get no food elements in the state, return high utility.
+
     """
-    "*** YOUR CODE HERE ***"
-    # Useful information you can extract from a GameState (pacman.py)
+
+    # Gather the new position we're in
     newPos = currentGameState.getPacmanPosition()
+    # Gather all the food
     Food = currentGameState.getFood()
+    # Save all the ghost states
     newGhostStates = currentGameState.getGhostStates()
-    #numGhosts = len(newGhostStates)
+    # Get the location of all power pellets
     capsules = currentGameState.getCapsules()
+    # This is when the scared counter will be hit.
     newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    # the location of all the ghosts
     ghostLocations = [ghostState.configuration.pos for ghostState in newGhostStates]
 
-    "*** YOUR CODE HERE ***"
-
+    # Distance to all food pellets.
     totalDistToAllPellets = 0
+
+    # Question Specific Constants
+    DEATHDISTANCE = 2
+    COUNTERTHRESHOLD = 25
+
+    # This condition returns the highest utility if we're nearing a power pellet.
+    ScaredTimerCheck = lambda x,y: len(x) and (max(y) > COUNTERTHRESHOLD)
+    AnyGhostsNearby = lambda x: x <= DEATHDISTANCE
 
     # Calculate the following:
     # a ) Distance to each food pellet.
@@ -552,11 +414,10 @@ def betterEvaluationFunction(currentGameState):
     # distance to each ghost - call sum() for total distance.
     distToGhosts = map(lambda x: util.manhattanDistance(newPos, x), ghostLocations)
 
-    # Use BFS to figure out the closest point, or else disregard all contributions 
-    # from capsule dist. 
-    if(len(capsules) and max(newScaredTimes) > 25):
-        # DO NOT DIE - if distance to any ghost is  <=2, don't make the move.
-        if(sum(distToGhosts) <= 2):
+    # Use BFS to figure out the closest point, or else disregard all contributions
+    # from capsule dist.
+    if(ScaredTimerCheck(capsules,newScaredTimes)):
+        if(AnyGhostsNearby(sum(distToGhosts))):
             return -10e11
 
         #capsuleDist = map(lambda x: util.manhattanDistance(newPos, x), capsules)
@@ -566,9 +427,9 @@ def betterEvaluationFunction(currentGameState):
         minCapDist = 10e11
 
     # Take care of trivial cases like nearby ghosts, no food instances, etc
-    
+
     # DO NOT DIE - if distance to any ghost is  <=2, don't make the move.
-    if(sum(distToGhosts) <= 2):
+    if(AnyGhostsNearby(sum(distToGhosts))):
         return -10e11
 
     if(totalDistToAllPellets == 0):
@@ -588,39 +449,21 @@ def betterEvaluationFunction(currentGameState):
     score_metric = (currentGameState.getScore()**3)
 
     # We need to eat that power pellet, so this must activate
-    # it's influence in two steps from the depth. 
+    # it's influence in two steps from the depth.
     capdist_metric = 10e7 /(minCapDist+1)
-
-    #print "SM, ",score_metric
-    #print "PDM, ",pellet_dist_metric
-    #print "GDM, ",ghost_dist_metric
-    #print "newScaredTimes, ",newScaredTimes
 
     metric = - food_dist_metric - pellet_dist_metric - ghost_dist_metric + score_metric + capdist_metric
     return metric
 
 # Abbreviation
 better = betterEvaluationFunction
-better2 = betterEvaluationFunction2
-
 
 class ContestAgent(MultiAgentSearchAgent):
-  """
-    Your agent for the mini-contest
-  """
-
-  def getAction(self, gameState):
     """
-      Returns an action.  You can use any method you want and search to any depth you want.
-      Just remember that the mini-contest is timed, so you have to trade off speed and computation.
-
-      Ghosts don't behave randomly anymore, but they aren't perfect either -- they'll usually
-      just make a beeline straight towards Pacman (or away from him if they're scared!)
+        Your agent for the mini-contest
     """
-    "*** YOUR CODE HERE ***"
-  def getAction(self, gameState):
-
-        # Using the same evaluation function & expectimax with depth = 3. 
+    def getAction(self, gameState):
+        # Using the same evaluation function & expectimax with depth = 3.
 
         def minimizer(gameState,depth,agentID):
             v = 0.0
@@ -641,9 +484,9 @@ class ContestAgent(MultiAgentSearchAgent):
         def SolveMinimax(gameState,depth):
             pacmanOrGhost = (depth % numAgents)
             if(gameState.isWin() or gameState.isLose()):
-                return betterEvaluationFunction2(gameState)
+                return betterEvaluationFunction(gameState)
             if(depth == singlePly):
-                return betterEvaluationFunction2(gameState)
+                return betterEvaluationFunction(gameState)
             if(pacmanOrGhost == 0):
                 # PACMAN
                 return maximizer(gameState,depth,pacmanOrGhost)
@@ -660,7 +503,7 @@ class ContestAgent(MultiAgentSearchAgent):
         v = -float('inf')
         # No point evaluating further - just return utility.
         if gameState.isWin() or gameState.isLose():
-            return betterEvaluationFunction2(gameState)
+            return betterEvaluationFunction(gameState)
         # Solve minimax for each action
         todo = None
         #print "----"
@@ -688,15 +531,15 @@ class SearchProblem:
         util.raiseNotDefined()
 
 class PositionSearchProblem(SearchProblem):
-  
+
     def __init__(self, gameState, costFn = lambda x: 1, goal=(1,1), start=None, warn=True):
-    
+
         self.walls = gameState.getWalls()
         self.startState = gameState.getPacmanPosition()
         if start != None: self.startState = start
         self.goal = goal
         self.costFn = costFn
-        self.visualize = False 
+        self.visualize = False
         if warn and (gameState.getNumFood() != 1 or not gameState.hasFood(*goal)):
           print 'Warning: this does not look like a regular search maze'
 
@@ -707,8 +550,8 @@ class PositionSearchProblem(SearchProblem):
         return self.startState
 
     def isGoalState(self, state):
-         isGoal = state == self.goal 
-     
+         isGoal = state == self.goal
+
          # For display purposes only
          if isGoal:
            self._visitedlist.append(state)
@@ -716,11 +559,11 @@ class PositionSearchProblem(SearchProblem):
            if '_display' in dir(__main__):
              if 'drawExpandedCells' in dir(__main__._display): #@UndefinedVariable
                __main__._display.drawExpandedCells(self._visitedlist) #@UndefinedVariable
-       
-         return isGoal   
-   
+
+         return isGoal
+
     def getSuccessors(self, state):
-    
+
         successors = []
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
           x,y = state
@@ -730,13 +573,13 @@ class PositionSearchProblem(SearchProblem):
             nextState = (nextx, nexty)
             cost = self.costFn(nextState)
             successors.append( ( nextState, action, cost) )
-        
+
         # Bookkeeping for display purposes
-        self._expanded += 1 
+        self._expanded += 1
         if state not in self._visited:
           self._visited[state] = True
           self._visitedlist.append(state)
-      
+
         return successors
 
     def getCostOfActions(self, actions):
@@ -756,69 +599,9 @@ class PositionSearchProblem(SearchProblem):
         return cost
 
 '''
-class Node():
-  """
-  A container storing the current state of a node, the list
-  of  directions that need to be followed from the start state to
-  get to the current state and the specific problem in which the
-  node will be used.
-  """
-  def __init__(self, state, path, cost=0, heuristic=0, problem=None):
-    self.state = state
-    self.path = path
-    self.cost = cost
-    self.heuristic = heuristic
-    self.problem = problem
-
-  def __str__(self):
-    string = "Current State: "
-    string += __str__(self.state)
-    string += "\n"
-    string == "Path: " + self.path + "\n"
-    return string
-
-  def getSuccessors(self, heuristicFunction=None):
-    children = []
-    for successor in self.problem.getSuccessors(self.state):
-      state = successor[0]
-      path = list(self.path)
-      path.append(successor[1])
-      cost = self.cost + successor[2]
-      if heuristicFunction:
-        heuristic = heuristicFunction(state, self.problem)
-      else:
-        heuristic = 0
-      node = Node(state, path, cost, heuristic, self.problem)
-      children.append(node)
-    return children
-
-def breadthFirstSearch(problem):
-    """
-    Search the shallowest nodes in the search tree first.
-    """
-
-    closed = set()
-    fringe = util.Queue()
-
-    startNode = Node(problem.getStartState(), [], 0, 0, problem)
-    fringe.push(startNode)
-
-    while True:
-      if fringe.isEmpty():
-        return False
-      node = fringe.pop()
-      if problem.isGoalState(node.state):
-        return node.path
-      if node.state not in closed:
-        closed.add(node.state)
-        for childNode in node.getSuccessors():
-          fringe.push(childNode)
-'''
-
-'''
 ----------------------
 ----------------------
-Code from Project # 1 ( Used for my last question )  
+Code from Project # 1 ( Used for my last question )
 ----------------------
 ----------------------
 '''
