@@ -199,6 +199,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
             if(result > v):
                 v = result
                 todo = action
+        #print v
         return todo
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -274,6 +275,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 todo = action
             # MUST UPDATE THE ROOT NODE.
             startAlphaBeta[0] = max(startAlphaBeta[0],v)
+        #print v
         return todo
     #util.raiseNotDefined()
 
