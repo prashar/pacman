@@ -36,45 +36,35 @@ class ValueIterationAgent(ValueEstimationAgent):
     self.iterations = iterations
     self.values = util.Counter() # A Counter is a dict with default 0
 
+    # Precompute the policy beforehand ..
     # For each iteration
     #   For each state
     #       for each action
     #   Update values
     for iteration in range(self.iterations):
-      tempValues = util.Counter() ; 
+      # Store a dictionary to maintain the newest states .. 
+      newState_values = util.Counter() ; 
       for state in self.mdp.getStates():
+        # If it is a terminal state, then just set have it's value set to 0.      
         if(self.mdp.isTerminal(state)):
-            tempValues[state] = 0
+            newState_values[state] = 0
             continue 
-        value = -float('inf')
+        cur_val = -float('inf')
         for action in self.mdp.getPossibleActions(state):
-            value = max(value,self.computeQValueFromValues(state,action))
-        tempValues[state] = value
-      self.values = tempValues  
-  
-  def computeQValueFromValues(self,state,action):
-      total_q_val = 0 
-      for (nextState, prob) in self.mdp.getTransitionStatesAndProbs(state,action):
-          total_q_val += prob * (self.mdp.getReward(state, action, nextState) + self.discount*self.getValue(nextState))
-      return total_q_val
+            cur_val = max(cur_val,self.getQValue(state,action))
+        newState_values[state] = cur_val
+      # Assign to instance variable .. 
+      self.values = newState_values  
 
-  def computeActionFromValues(self,state):
-      value = -float('inf')
-      max_value_action = None 
-      for action in self.mdp.getPossibleActions(state):
-          q_val_action = self.computeQValueFromValues(state,action) 
-          if( q_val_action > value):
-              max_value_action = action 
-              value = q_val_action
-      return max_value_action  
-   
   def getValue(self, state):
     """
       Return the value of the state (computed in __init__).
     """
     return self.values[state]
 
-
+  # This routine computes the sum of all q values that could result if we did a specific 
+  # (state,action) sequence. Basically, it's the sum of all Q's -> R(s,a,s') + gamma * v(s')
+  # for each AVAIL action(based on prob). 
   def getQValue(self, state, action):
     """
       The q-value of the state action pair
@@ -84,8 +74,14 @@ class ValueIterationAgent(ValueEstimationAgent):
       to derive it on the fly.
     """
     "*** YOUR CODE HERE ***"
-    return self.computeQValueFromValues(state,action)
+    total_q_val = 0 
+    # For terminal state, there is only one action - exit. 
+    for (nextState, prob) in self.mdp.getTransitionStatesAndProbs(state,action):
+        total_q_val += prob * (self.mdp.getReward(state, action, nextState) + self.discount*self.getValue(nextState))
+    return total_q_val
 
+  # This routine just returns the MAX Q-Value corresponding to a given state
+  # it iterates over all actions avaialble in state, and returns the one with max utility. 
   def getPolicy(self, state):
     """
       The policy is the best action in the given state
@@ -95,7 +91,14 @@ class ValueIterationAgent(ValueEstimationAgent):
       terminal state, you should return None.
     """
     "*** YOUR CODE HERE ***"
-    return self.computeActionFromValues(state)
+    utility = -float('inf')
+    max_value_action = None 
+    for action in self.mdp.getPossibleActions(state):
+        total_q_val_for_state = self.getQValue(state,action) 
+        if( total_q_val_for_state > utility):
+            max_value_action = action 
+            utility = total_q_val_for_state
+    return max_value_action  
 
   def getAction(self, state):
     "Returns the policy at the state (no exploration)."
