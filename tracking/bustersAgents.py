@@ -10,6 +10,7 @@ import util
 from game import Agent
 from game import Directions
 from keyboardAgents import KeyboardAgent
+import random 
 import inference
 
 class BustersAgent:
@@ -108,5 +109,44 @@ class GreedyBustersAgent(BustersAgent):
     livingGhostPositionDistributions = [beliefs for i,beliefs
                                         in enumerate(self.ghostBeliefs)
                                         if livingGhosts[i+1]]
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    
+    # Location == State 
+    # First iterate over the livingghostdistributions and try to find the one
+    # with highest prob, highest state
+    maxProb = 0 
+    maxProbState = None 
+    possibleGhostPositions = [] 
+    numGhostDists = len(livingGhostPositionDistributions) 
+    for idx in range(numGhostDists):
+        # Find the max prob state for this ghost id
+        for curProbState,curProb in livingGhostPositionDistributions[idx].items():
+            if(curProb > maxProb):
+                maxProb,maxProbState = curProb,curProbState
+        # Store the (location,dist) for this ghostID. 
+        dist_to_state = self.distancer.getDistance(maxProbState,pacmanPosition)
+        possibleGhostPositions.append((maxProbState,dist_to_state))
+
+    # possibleGhostPositions has k different maxprob,maxprobstates
+    # Take the min to all of these ghosts and then go after it .. 
+    minDist = float('inf') 
+    minState = None
+    for curState,curDist in possibleGhostPositions:
+        if(curDist < minDist):
+            minDist = curDist 
+            minState = curState
+
+    # Now you have the best dist/best state
+    # Choose an action which minizes the distance to the location chosen
+    # previously
+    minAction = None 
+    minDist = float('inf') 
+    candidates = []
+    for successorAction in legal:
+        nextPos = Actions.getSuccessor(pacmanPosition, successorAction)
+        pacmanDistToNextPos = self.distancer.getDistance(minState,nextPos)
+        if(pacmanDistToNextPos < minDist):
+            minDist = pacmanDistToNextPos
+            candidates = [successorAction]
+        elif(pacmanDistToNextPos == minDist):
+            candidates.append(successorAction)
+    return random.choice(candidates)

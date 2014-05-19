@@ -114,11 +114,23 @@ class ExactInference(InferenceModule):
     pacmanPosition = gameState.getPacmanPosition()
     
     "*** YOUR CODE HERE ***"
+    '''
+    print "Noisy distance:"
+    print noisyDistance
+    print "Emission Model:"
+    print emissionModel
+    print "Pacman Position:"
+    print pacmanPosition
+    print "Beliefs:"
+    print self.beliefs
+    print"-------------------"
+    '''
     # Replace this code with a correct observation update
     allPossible = util.Counter()
     for p in self.legalPositions:
       trueDistance = util.manhattanDistance(p, pacmanPosition)
-      if emissionModel[trueDistance] > 0: allPossible[p] = 1.0
+      if emissionModel[trueDistance] > 0:
+          allPossible[p] = emissionModel[trueDistance] * self.beliefs[p]
     allPossible.normalize()
         
     "*** YOUR CODE HERE ***"
@@ -165,9 +177,16 @@ class ExactInference(InferenceModule):
           This method uses the ghost agent to determine what positions the ghost
           will move to from the provided gameState.  The ghost must be placed
           in the gameState with a call to self.setGhostPosition above.
-    """
     
-    "*** YOUR CODE HERE ***"
+    """
+    updatedPacmanBeliefs = util.Counter() 
+    for prevPos in self.legalPositions:
+        # Using the line provided above
+        newPosDist = self.getPositionDistribution(self.setGhostPosition(gameState, prevPos))
+        for nextPos,probNextPos in newPosDist.items():
+            updatedPacmanBeliefs[nextPos] += probNextPos * self.beliefs[prevPos]
+    self.beliefs = updatedPacmanBeliefs 
+
 
   def getBeliefDistribution(self):
     return self.beliefs
@@ -184,6 +203,7 @@ class ParticleFilter(InferenceModule):
   def initializeUniformly(self, gameState, numParticles=300):
     "Initializes a list of particles."
     self.numParticles = numParticles
+    print len(self.legalPositions)
     "*** YOUR CODE HERE ***"
   
   def observe(self, observation, gameState):
