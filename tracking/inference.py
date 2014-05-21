@@ -113,28 +113,23 @@ class ExactInference(InferenceModule):
     emissionModel = busters.getObservationDistribution(noisyDistance)
     pacmanPosition = gameState.getPacmanPosition()
     
-    "*** YOUR CODE HERE ***"
-    '''
-    print "Noisy distance:"
-    print noisyDistance
-    print "Emission Model:"
-    print emissionModel
-    print "Pacman Position:"
-    print pacmanPosition
-    print "Beliefs:"
-    print self.beliefs
-    print"-------------------"
-    '''
     # Replace this code with a correct observation update
-    allPossible = util.Counter()
-    for p in self.legalPositions:
-      trueDistance = util.manhattanDistance(p, pacmanPosition)
-      if emissionModel[trueDistance] > 0:
-          allPossible[p] = emissionModel[trueDistance] * self.beliefs[p]
-    allPossible.normalize()
+    updatedBeliefs = util.Counter()
+    if(noisyDistance != 999):
+      for p in self.legalPositions:
+        trueDistance = util.manhattanDistance(p, pacmanPosition)
+        if emissionModel[trueDistance] > 0:
+          updatedBeliefs[p] = emissionModel[trueDistance] * self.beliefs[p]
+    else:
+      # Must take care of this base case - as autograder seems to ask for it. 
+      # Setting the probability of the ghost jail cell to be 1 and rest to be 0
+      ghostJailPos = (2 * self.ghostAgent.index - 1, 1) 
+      updatedBeliefs[ghostJailPos] = 1.0
+    
+    # MUST normalize !
+    updatedBeliefs.normalize()
         
-    "*** YOUR CODE HERE ***"
-    self.beliefs = allPossible
+    self.beliefs = updatedBeliefs
     
   def elapseTime(self, gameState):
     """
@@ -214,7 +209,7 @@ class ParticleFilter(InferenceModule):
     emissionModel = busters.getObservationDistribution(observation)
     pacmanPosition = gameState.getPacmanPosition()
 
-    if(observation == None):
+    if(observation == 999):
         for particleId in range(self.numParticles):
             self.particles[particleId] = (2*self.ghostAgent.index - 1, 1)
     else:        
@@ -225,7 +220,7 @@ class ParticleFilter(InferenceModule):
             if emissionModel[truthDist] > 0:
                 newBeliefs[position] = emissionModel[truthDist] * currentBeliefs[position]
         if(newBeliefs.totalCount() == 0):
-            self.initializeUniformly(gameState) ; 
+            self.initializeUniformly(gameState)
         else:
             for particleId in range(self.numParticles):
                 self.particles[particleId] = util.sample(newBeliefs) 
@@ -368,8 +363,17 @@ class JointParticleFilter:
       for ghostIdx in range(self.numGhosts):
         # This will return you one of the samples based on the distribution .. 
         newParticle[ghostIdx] = util.sample(newPositionDistributions[oldParticle][ghostIdx])
+      # Put it back as a tuple .. 
       newParticles.append(tuple(newParticle))
     self.particles = newParticles
+
+  def getJailPosition(self, i):
+    return (2 * i + 1, 1);
+  
+  def getParticleWithGhostInJail(self, particle, ghostIndex):
+    particle = list(particle)
+    particle[ghostIndex] = self.getJailPosition(ghostIndex)
+    return tuple(particle)
 
   def observeState(self, gameState):
     """
@@ -398,22 +402,35 @@ class JointParticleFilter:
     if len(noisyDistances) < self.numGhosts: return
     emissionModels = [busters.getObservationDistribution(dist) for dist in noisyDistances]
     curBeliefDist = self.getBeliefDistribution()
+
+    # It's a DBN, so we need to track every single ghost distribution. 
+    # Sample is a list of distributions for each fhost.  
     for ghostIdx in range(self.numGhosts):
-      for particle in curBeliefDist:
-        truthDistance = util.manhattanDistance(particle[ghostIdx],pacmanPosition)
-        curBeliefDist[particle] *= emissionModels[ghostIdx][truthDistance]
+      # If no noisy distance, meaning we caught it ..     
+      if(noisyDistances[ghostIdx] == 999):
+        for particleId in range(self.numParticles):
+          self.particles[particleId] = self.getParticleWithGhostInJail(self.particles[particleId], ghostIdx)
+        curBeliefDist = self.getBeliefDistribution()
+      # else the normal case where we multiply the 
+      # current distribution of the particle with the distribution for this
+      # particular ghost. 
+      else:
+        for particle in curBeliefDist:
+          truthDistance = util.manhattanDistance(particle[ghostIdx],pacmanPosition)
+          curBeliefDist[particle] *= emissionModels[ghostIdx][truthDistance]
+    # Jail Case       
     if curBeliefDist.totalCount() == 0:
       self.initializeParticles()
+      for ghostIdx in range(self.numGhosts):
+        if noisyDistances[ghostIdx] == 999:
+          for id in range(self.numParticles):
+            self.particles[id] = self.getParticleWithGhostInJail(self.particles[id], ghostIdx)
+    # Normal case
     else:
       curBeliefDist.normalize() 
       for particleId in range(self.numParticles):
         self.particles[particleId] = util.sample(curBeliefDist)
 
-
-
-
-    "*** YOUR CODE HERE ***"
-  
   def getBeliefDistribution(self):
     dist = util.Counter()
     for part in self.particles: dist[part] += 1

@@ -113,11 +113,13 @@ class GreedyBustersAgent(BustersAgent):
     # Location == State 
     # First iterate over the livingghostdistributions and try to find the one
     # with highest prob, highest state
-    maxProb = 0 
-    maxProbState = None 
     possibleGhostPositions = [] 
     numGhostDists = len(livingGhostPositionDistributions) 
+    # approximating the location of the cell, as well as the distance to it for
+    # each ghost
     for idx in range(numGhostDists):
+        maxProb = 0 
+        maxProbState = None 
         # Find the max prob state for this ghost id
         for curProbState,curProb in livingGhostPositionDistributions[idx].items():
             if(curProb > maxProb):
